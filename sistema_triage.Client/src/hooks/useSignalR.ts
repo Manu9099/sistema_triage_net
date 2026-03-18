@@ -10,10 +10,10 @@ export function useSignalR(onNuevoTriage: (data: any) => void, onEmergencia: (da
     const token = localStorage.getItem('accessToken')
     if (!token) return
 
-    const connection = new signalR.HubConnectionBuilder()
-      .withUrl('http://localhost:5000/hubs/triage', {
-        accessTokenFactory: () => token
-      })
+  const connection = new signalR.HubConnectionBuilder()
+  .withUrl(`${import.meta.env.VITE_API_URL}/hubs/triage`, {
+    accessTokenFactory: () => token
+  })
       .withAutomaticReconnect()
       .configureLogging(signalR.LogLevel.Warning)
       .build()
