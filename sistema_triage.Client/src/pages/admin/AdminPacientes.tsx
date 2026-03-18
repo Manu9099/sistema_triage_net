@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Search, Plus, User, X } from 'lucide-react'
 import { pacientesApi } from '../../api/pacientes'
 import { authApi } from '../../api/auth'
-import type { Paciente, CrearPacienteDto } from '../../types'
+import type { Paciente, CrearPacienteDto, ActualizarPacienteDto } from '../../types'
 
 function validarEmail(email: string) {
   if (!email.trim()) return true
@@ -32,9 +32,7 @@ function obtenerEdad(fechaNacimiento: string) {
   return edad
 }
 
-function ModalCrearCuenta({
-  paciente, onClose, onCuentaCreada,
-}: {
+function ModalCrearCuenta({ paciente, onClose, onCuentaCreada }: {
   paciente: Paciente
   onClose: () => void
   onCuentaCreada: (pacienteId: string) => void
@@ -55,7 +53,6 @@ function ModalCrearCuenta({
     if (!emailValido) { setError('El email del paciente no es válido.'); return }
     if (!passwordValida) { setError('La contraseña debe tener mínimo 8 caracteres, una mayúscula, un número y un carácter especial.'); return }
     if (!passwordsCoinciden) { setError('Las contraseñas no coinciden.'); return }
-
     setLoading(true)
     setError('')
     try {
@@ -85,7 +82,6 @@ function ModalCrearCuenta({
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-white" type="button"><X size={20} /></button>
         </div>
-
         <div className="p-6">
           {exito ? (
             <div className="text-center py-4">
@@ -98,49 +94,32 @@ function ModalCrearCuenta({
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
-                  <p className="text-red-400 text-sm">{error}</p>
-                </div>
-              )}
-
+              {error && <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3"><p className="text-red-400 text-sm">{error}</p></div>}
               <div>
                 <label className="block text-xs font-medium text-gray-400 mb-1">Email del paciente</label>
                 <input value={paciente.email ?? ''} disabled
-                  className={`w-full bg-gray-800/50 border rounded-lg px-3 py-2 text-sm cursor-not-allowed ${
-                    paciente.email && !emailValido ? 'border-red-500 text-red-400' : 'border-gray-700 text-gray-400'
-                  }`} />
+                  className={`w-full bg-gray-800/50 border rounded-lg px-3 py-2 text-sm cursor-not-allowed ${paciente.email && !emailValido ? 'border-red-500 text-red-400' : 'border-gray-700 text-gray-400'}`} />
                 {!paciente.email && <p className="text-yellow-400 text-xs mt-1">Este paciente no tiene email. Edítalo primero.</p>}
                 {paciente.email && !emailValido && <p className="text-red-400 text-xs mt-1">El email registrado no tiene formato válido.</p>}
                 {paciente.email && emailValido && <p className="text-green-400 text-xs mt-1">✓ Email válido</p>}
               </div>
-
               <div>
                 <label className="block text-xs font-medium text-gray-400 mb-1">Contraseña *</label>
                 <input type="password" value={password} onChange={e => setPassword(e.target.value)} required
                   placeholder="Mín. 8 caracteres, 1 mayúscula, 1 número, 1 especial"
-                  className={`w-full bg-gray-800 border rounded-lg px-3 py-2 text-white text-sm focus:outline-none ${
-                    password && !passwordValida ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-blue-500'
-                  }`} />
-                {password && !passwordValida && (
-                  <p className="text-red-400 text-xs mt-1">Debe tener mínimo 8 caracteres, una mayúscula, un número y un carácter especial.</p>
-                )}
+                  className={`w-full bg-gray-800 border rounded-lg px-3 py-2 text-white text-sm focus:outline-none ${password && !passwordValida ? 'border-red-500' : 'border-gray-700 focus:border-blue-500'}`} />
+                {password && !passwordValida && <p className="text-red-400 text-xs mt-1">Debe tener mínimo 8 caracteres, una mayúscula, un número y un carácter especial.</p>}
                 {password && passwordValida && <p className="text-green-400 text-xs mt-1">✓ Contraseña segura</p>}
               </div>
-
               <div>
                 <label className="block text-xs font-medium text-gray-400 mb-1">Confirmar contraseña *</label>
                 <input type="password" value={confirmar} onChange={e => setConfirmar(e.target.value)} required
-                  className={`w-full bg-gray-800 border rounded-lg px-3 py-2 text-white text-sm focus:outline-none ${
-                    confirmar && !passwordsCoinciden ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-blue-500'
-                  }`} />
+                  className={`w-full bg-gray-800 border rounded-lg px-3 py-2 text-white text-sm focus:outline-none ${confirmar && !passwordsCoinciden ? 'border-red-500' : 'border-gray-700 focus:border-blue-500'}`} />
                 {confirmar && !passwordsCoinciden && <p className="text-red-400 text-xs mt-1">Las contraseñas no coinciden.</p>}
                 {confirmar && passwordsCoinciden && password && <p className="text-green-400 text-xs mt-1">✓ Las contraseñas coinciden</p>}
               </div>
-
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={onClose}
-                  className="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-white text-sm rounded-lg">Cancelar</button>
+                <button type="button" onClick={onClose} className="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-white text-sm rounded-lg">Cancelar</button>
                 <button type="submit" disabled={loading || !paciente.email || !emailValido || !passwordValida || !passwordsCoinciden}
                   className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg">
                   {loading ? 'Creando...' : 'Crear cuenta'}
@@ -154,12 +133,122 @@ function ModalCrearCuenta({
   )
 }
 
-function ModalCrearPaciente({
-  onClose, onCreado,
-}: {
+function ModalEditarPaciente({ paciente, onClose, onActualizado }: {
+  paciente: Paciente
   onClose: () => void
-  onCreado: (p: Paciente) => void
+  onActualizado: (p: Paciente) => void
 }) {
+  const [form, setForm] = useState<ActualizarPacienteDto>({
+    nombres: paciente.nombres,
+    apellidos: paciente.apellidos,
+    fechaNacimiento: paciente.fechaNacimiento.slice(0, 10),
+    genero: paciente.genero,
+    telefono: paciente.telefono ?? '',
+    email: paciente.email ?? '',
+    direccion: paciente.direccion ?? '',
+    alergias: paciente.alergias ?? '',
+    comorbilidades: paciente.comorbilidades ?? '',
+  })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const set = (k: keyof ActualizarPacienteDto, v: string | number) =>
+    setForm(prev => ({ ...prev, [k]: v }))
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    try {
+      const actualizado = await pacientesApi.actualizar(paciente.id, form)
+      onActualizado(actualizado)
+      onClose()
+    } catch (err: any) {
+      setError(err?.response?.data?.mensaje ?? 'Error al actualizar')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+      <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-lg max-h-screen overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-gray-800">
+          <h3 className="text-lg font-semibold text-white">Editar paciente</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-white" type="button"><X size={20} /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {error && <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3"><p className="text-red-400 text-sm">{error}</p></div>}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1">Nombres *</label>
+              <input value={form.nombres} onChange={e => set('nombres', e.target.value)} required
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1">Apellidos *</label>
+              <input value={form.apellidos} onChange={e => set('apellidos', e.target.value)} required
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1">Fecha nacimiento *</label>
+              <input type="date" value={form.fechaNacimiento} onChange={e => set('fechaNacimiento', e.target.value)} required
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1">Género</label>
+              <select value={form.genero} onChange={e => set('genero', parseInt(e.target.value))}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500">
+                <option value={0}>Masculino</option>
+                <option value={1}>Femenino</option>
+                <option value={2}>Otro</option>
+                <option value={3}>No especificado</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1">Teléfono</label>
+              <input value={form.telefono} onChange={e => set('telefono', e.target.value)}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1">Email</label>
+              <input type="email" value={form.email} onChange={e => set('email', e.target.value)}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1">Dirección</label>
+            <input value={form.direccion} onChange={e => set('direccion', e.target.value)}
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1">Alergias</label>
+            <input value={form.alergias} onChange={e => set('alergias', e.target.value)}
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1">Comorbilidades</label>
+            <input value={form.comorbilidades} onChange={e => set('comorbilidades', e.target.value)}
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500" />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-white text-sm rounded-lg">Cancelar</button>
+            <button type="submit" disabled={loading}
+              className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg">
+              {loading ? 'Guardando...' : 'Guardar cambios'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function ModalCrearPaciente({ onClose, onCreado }: { onClose: () => void; onCreado: (p: Paciente) => void }) {
   const [form, setForm] = useState<CrearPacienteDto>({
     nombres: '', apellidos: '', numeroDocumento: '',
     fechaNacimiento: '', genero: 0,
@@ -183,17 +272,14 @@ function ModalCrearPaciente({
 
   const fechaNacimientoValida = (() => {
     if (!form.fechaNacimiento) return false
-    const fecha = new Date(form.fechaNacimiento)
-    return fecha <= new Date()
+    return new Date(form.fechaNacimiento) <= new Date()
   })()
 
   const edad = obtenerEdad(form.fechaNacimiento)
   const edadValida = edad != null && edad >= 0 && edad <= 120
 
-  const formularioValido =
-    nombresValidos && apellidosValidos && documentoValido &&
-    fechaNacimientoValida && edadValida && emailValido &&
-    telefonoValido && !documentoExiste
+  const formularioValido = nombresValidos && apellidosValidos && documentoValido &&
+    fechaNacimientoValida && edadValida && emailValido && telefonoValido && !documentoExiste
 
   const verificarDocumento = (doc: string) => {
     setDocumentoExiste(false)
@@ -216,7 +302,6 @@ function ModalCrearPaciente({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-
     if (!nombresValidos) { setError('Los nombres deben tener al menos 2 caracteres.'); return }
     if (!apellidosValidos) { setError('Los apellidos deben tener al menos 2 caracteres.'); return }
     if (!documentoValido) { setError('El número de documento debe tener entre 6 y 20 caracteres válidos.'); return }
@@ -224,7 +309,6 @@ function ModalCrearPaciente({
     if (!fechaNacimientoValida || !edadValida) { setError('La fecha de nacimiento no es válida.'); return }
     if (!emailValido) { setError('El email no tiene formato válido.'); return }
     if (!telefonoValido) { setError('El teléfono debe tener entre 7 y 15 dígitos.'); return }
-
     setLoading(true)
     try {
       const nuevo = await pacientesApi.crear({
@@ -249,42 +333,29 @@ function ModalCrearPaciente({
           <h3 className="text-lg font-semibold text-white">Nuevo paciente</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-white" type="button"><X size={20} /></button>
         </div>
-
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
-              <p className="text-red-400 text-sm">{error}</p>
-            </div>
-          )}
-
+          {error && <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3"><p className="text-red-400 text-sm">{error}</p></div>}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1">Nombres *</label>
               <input value={form.nombres} onChange={e => set('nombres', e.target.value)} required
-                className={`w-full bg-gray-800 border rounded-lg px-3 py-2 text-white text-sm focus:outline-none ${
-                  form.nombres && !nombresValidos ? 'border-red-500' : 'border-gray-700 focus:border-blue-500'
-                }`} />
+                className={`w-full bg-gray-800 border rounded-lg px-3 py-2 text-white text-sm focus:outline-none ${form.nombres && !nombresValidos ? 'border-red-500' : 'border-gray-700 focus:border-blue-500'}`} />
               {form.nombres && !nombresValidos && <p className="text-xs text-red-400 mt-1">Mínimo 2 caracteres.</p>}
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1">Apellidos *</label>
               <input value={form.apellidos} onChange={e => set('apellidos', e.target.value)} required
-                className={`w-full bg-gray-800 border rounded-lg px-3 py-2 text-white text-sm focus:outline-none ${
-                  form.apellidos && !apellidosValidos ? 'border-red-500' : 'border-gray-700 focus:border-blue-500'
-                }`} />
+                className={`w-full bg-gray-800 border rounded-lg px-3 py-2 text-white text-sm focus:outline-none ${form.apellidos && !apellidosValidos ? 'border-red-500' : 'border-gray-700 focus:border-blue-500'}`} />
               {form.apellidos && !apellidosValidos && <p className="text-xs text-red-400 mt-1">Mínimo 2 caracteres.</p>}
             </div>
           </div>
-
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1">N° Documento *</label>
               <input value={form.numeroDocumento}
                 onChange={e => { set('numeroDocumento', e.target.value); verificarDocumento(e.target.value) }}
                 required
-                className={`w-full bg-gray-800 border rounded-lg px-3 py-2 text-white text-sm focus:outline-none transition-colors ${
-                  (form.numeroDocumento && !documentoValido) || documentoExiste ? 'border-red-500' : 'border-gray-700 focus:border-blue-500'
-                }`} />
+                className={`w-full bg-gray-800 border rounded-lg px-3 py-2 text-white text-sm focus:outline-none transition-colors ${(form.numeroDocumento && !documentoValido) || documentoExiste ? 'border-red-500' : 'border-gray-700 focus:border-blue-500'}`} />
               {form.numeroDocumento && !documentoValido && <p className="text-xs text-red-400 mt-1">Entre 6 y 20 caracteres válidos.</p>}
               {verificandoDoc && <p className="text-xs text-gray-400 mt-1">Verificando...</p>}
               {documentoExiste && <p className="text-xs text-red-400 mt-1">Ya existe un paciente con este documento.</p>}
@@ -295,14 +366,11 @@ function ModalCrearPaciente({
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1">Fecha nacimiento *</label>
               <input type="date" value={form.fechaNacimiento} onChange={e => set('fechaNacimiento', e.target.value)} required
-                className={`w-full bg-gray-800 border rounded-lg px-3 py-2 text-white text-sm focus:outline-none ${
-                  form.fechaNacimiento && (!fechaNacimientoValida || !edadValida) ? 'border-red-500' : 'border-gray-700 focus:border-blue-500'
-                }`} />
+                className={`w-full bg-gray-800 border rounded-lg px-3 py-2 text-white text-sm focus:outline-none ${form.fechaNacimiento && (!fechaNacimientoValida || !edadValida) ? 'border-red-500' : 'border-gray-700 focus:border-blue-500'}`} />
               {form.fechaNacimiento && (!fechaNacimientoValida || !edadValida) && <p className="text-xs text-red-400 mt-1">Fecha no válida.</p>}
               {edad != null && edadValida && <p className="text-xs text-gray-400 mt-1">Edad: {edad} años</p>}
             </div>
           </div>
-
           <div>
             <label className="block text-xs font-medium text-gray-400 mb-1">Género *</label>
             <select value={form.genero} onChange={e => set('genero', parseInt(e.target.value, 10))}
@@ -313,50 +381,38 @@ function ModalCrearPaciente({
               <option value={3}>No especificado</option>
             </select>
           </div>
-
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1">Teléfono</label>
-              <input value={form.telefono} onChange={e => set('telefono', e.target.value)}
-                placeholder="987 654 321"
-                className={`w-full bg-gray-800 border rounded-lg px-3 py-2 text-white text-sm focus:outline-none ${
-                  form.telefono && !telefonoValido ? 'border-red-500' : 'border-gray-700 focus:border-blue-500'
-                }`} />
+              <input value={form.telefono} onChange={e => set('telefono', e.target.value)} placeholder="987 654 321"
+                className={`w-full bg-gray-800 border rounded-lg px-3 py-2 text-white text-sm focus:outline-none ${form.telefono && !telefonoValido ? 'border-red-500' : 'border-gray-700 focus:border-blue-500'}`} />
               {form.telefono && !telefonoValido && <p className="text-xs text-red-400 mt-1">Entre 7 y 15 dígitos.</p>}
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1">Email</label>
-              <input type="email" value={form.email} onChange={e => set('email', e.target.value)}
-                placeholder="paciente@email.com"
-                className={`w-full bg-gray-800 border rounded-lg px-3 py-2 text-white text-sm focus:outline-none ${
-                  form.email && !emailValido ? 'border-red-500' : 'border-gray-700 focus:border-blue-500'
-                }`} />
+              <input type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="paciente@email.com"
+                className={`w-full bg-gray-800 border rounded-lg px-3 py-2 text-white text-sm focus:outline-none ${form.email && !emailValido ? 'border-red-500' : 'border-gray-700 focus:border-blue-500'}`} />
               {form.email && !emailValido && <p className="text-xs text-red-400 mt-1">Email no válido.</p>}
               {form.email && emailValido && <p className="text-xs text-green-400 mt-1">✓ Email válido</p>}
             </div>
           </div>
-
           <div>
             <label className="block text-xs font-medium text-gray-400 mb-1">Dirección</label>
             <input value={form.direccion} onChange={e => set('direccion', e.target.value)}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500" />
           </div>
-
           <div>
             <label className="block text-xs font-medium text-gray-400 mb-1">Alergias</label>
             <input value={form.alergias} onChange={e => set('alergias', e.target.value)}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500" />
           </div>
-
           <div>
             <label className="block text-xs font-medium text-gray-400 mb-1">Comorbilidades</label>
             <input value={form.comorbilidades} onChange={e => set('comorbilidades', e.target.value)}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500" />
           </div>
-
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose}
-              className="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-white text-sm rounded-lg transition-colors">Cancelar</button>
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-white text-sm rounded-lg transition-colors">Cancelar</button>
             <button type="submit" disabled={loading || verificandoDoc || !formularioValido}
               className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors">
               {loading ? 'Guardando...' : 'Crear paciente'}
@@ -374,6 +430,8 @@ export function AdminPacientes() {
   const [loading, setLoading] = useState(true)
   const [modalAbierto, setModalAbierto] = useState(false)
   const [pacienteSeleccionado, setPacienteSeleccionado] = useState<Paciente | null>(null)
+  const [pacienteEditando, setPacienteEditando] = useState<Paciente | null>(null)
+  const [pacienteAEliminar, setPacienteAEliminar] = useState<Paciente | null>(null)
 
   useEffect(() => {
     pacientesApi.getAll().then(setPacientes).finally(() => setLoading(false))
@@ -394,6 +452,17 @@ export function AdminPacientes() {
   const onCuentaCreada = (pacienteId: string) =>
     setPacientes(prev => prev.map(p => p.id === pacienteId ? { ...p, tieneCuenta: true } : p))
 
+  const eliminarPaciente = async () => {
+    if (!pacienteAEliminar) return
+    try {
+      await pacientesApi.desactivar(pacienteAEliminar.id)
+      setPacientes(prev => prev.filter(p => p.id !== pacienteAEliminar.id))
+      setPacienteAEliminar(null)
+    } catch {
+      alert('Error al eliminar el paciente')
+    }
+  }
+
   return (
     <div className="p-8">
       {modalAbierto && (
@@ -405,6 +474,33 @@ export function AdminPacientes() {
           onClose={() => setPacienteSeleccionado(null)}
           onCuentaCreada={onCuentaCreada}
         />
+      )}
+      {pacienteEditando && (
+        <ModalEditarPaciente
+          paciente={pacienteEditando}
+          onClose={() => setPacienteEditando(null)}
+          onActualizado={(p) => {
+            setPacientes(prev => prev.map(x => x.id === p.id ? p : x))
+            setPacienteEditando(null)
+          }}
+        />
+      )}
+      {pacienteAEliminar && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-sm p-6">
+            <h3 className="text-lg font-semibold text-white mb-2">Confirmar eliminación</h3>
+            <p className="text-gray-400 text-sm mb-6">
+              ¿Desactivar a <span className="text-white font-medium">{pacienteAEliminar.nombreCompleto}</span>?
+              No podrá acceder al sistema pero sus datos se conservan.
+            </p>
+            <div className="flex gap-3">
+              <button type="button" onClick={() => setPacienteAEliminar(null)}
+                className="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-white text-sm rounded-lg">Cancelar</button>
+              <button type="button" onClick={eliminarPaciente}
+                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg">Desactivar</button>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="flex items-center justify-between mb-8">
@@ -472,17 +568,29 @@ export function AdminPacientes() {
                   <td className="px-5 py-4 text-sm text-gray-300">{p.edad} años</td>
                   <td className="px-5 py-4 text-sm text-gray-300">{p.telefono ?? '—'}</td>
                   <td className="px-5 py-4">
-                    <button onClick={() => setPacienteSeleccionado(p)}
-                      disabled={!p.email || p.tieneCuenta}
-                      title={!p.email ? 'Sin email registrado' : p.tieneCuenta ? 'Ya tiene cuenta activa' : 'Crear cuenta de acceso'}
-                      type="button"
-                      className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                        !p.email || p.tieneCuenta
-                          ? 'bg-gray-800/40 text-gray-600 cursor-not-allowed'
-                          : 'bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white cursor-pointer'
-                      }`}>
-                      {p.tieneCuenta ? 'Cuenta activa' : 'Crear cuenta'}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setPacienteEditando(p)} type="button"
+                        title="Editar paciente"
+                        className="px-3 py-1.5 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded-lg transition-colors">
+                        Editar
+                      </button>
+                      <button onClick={() => setPacienteSeleccionado(p)}
+                        disabled={!p.email || p.tieneCuenta}
+                        title={!p.email ? 'Sin email registrado' : p.tieneCuenta ? 'Ya tiene cuenta activa' : 'Crear cuenta de acceso'}
+                        type="button"
+                        className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
+                          !p.email || p.tieneCuenta
+                            ? 'bg-gray-800/40 text-gray-600 cursor-not-allowed'
+                            : 'bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white cursor-pointer'
+                        }`}>
+                        {p.tieneCuenta ? 'Cuenta activa' : 'Crear cuenta'}
+                      </button>
+                      <button onClick={() => setPacienteAEliminar(p)} type="button"
+                        title="Desactivar paciente"
+                        className="px-3 py-1.5 text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 rounded-lg transition-colors">
+                        Eliminar
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -43,5 +43,8 @@ getByDocumento: async (documento: string): Promise<Paciente | null> => {
     return null
   }
 },
+desactivar: async (id: string): Promise<void> => {
+  await api.delete(`/pacientes/${id}`)
+},
 
 }

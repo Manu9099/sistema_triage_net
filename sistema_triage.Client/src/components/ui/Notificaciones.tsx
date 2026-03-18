@@ -103,7 +103,7 @@ export function Notificaciones() {
         {abierto && (
           <>
             <div style={{position:'fixed',inset:0,zIndex:40}} onClick={() => setAbierto(false)} />
-            <div style={{position:'absolute',right:0,top:'calc(100% + 8px)',zIndex:50,width:'360px'}}>
+              <div style={{position:'fixed', top:'60px', left:'16px', zIndex:50, width:'360px'}}>
               <div className="bg-gray-900 border border-gray-800 rounded-xl shadow-2xl overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
                   <p className="text-sm font-medium text-white">Notificaciones</p>
