@@ -1,0 +1,75 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using sistema_triage.Application.DTOs.Triage;
+using sistema_triage.Application.Services.Interfaces;
+using System.Security.Claims;
+using sistema_triage.API.Services;
+
+namespace sistema_triage.API.Controllers;
+
+
+
+
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]
+public class TriageController : ControllerBase
+{
+    private readonly ITriageService _triageService;
+   private readonly NotificacionService _notificaciones;
+    public TriageController(ITriageService triageService ,NotificacionService notificaciones)
+    {
+        _triageService = triageService;
+         _notificaciones = notificaciones;
+    }
+
+    
+
+    [HttpPost]
+    [Authorize(Roles = "Admin,Staff,Paciente")]
+    public async Task<IActionResult> Registrar([FromBody] CrearTriageDto dto)
+    {
+        var usuarioId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+        var resultado = await _triageService.RegistrarAsync(dto, usuarioId);
+    // Notificar a todos los admins conectados       
+var notif = new
+{
+    id = resultado.Id,
+    nombrePaciente = resultado.NombrePaciente,
+    nivel = resultado.Nivel,
+    nivelDescripcion = resultado.NivelDescripcion,
+    tiempoAtencion = resultado.TiempoAtencion,
+    diagnosticoPrincipal = resultado.DiagnosticosDiferenciales?.FirstOrDefault()?.Nombre ?? "—",
+    fechaRegistro = resultado.FechaRegistro
+};
+
+await _notificaciones.NotificarNuevoTriage(notif);
+
+if (resultado.Nivel == Domain.Enums.NivelTriage.Emergencia || 
+    resultado.Nivel == Domain.Enums.NivelTriage.Urgente)
+    await _notificaciones.NotificarEmergencia(notif);
+    await _notificaciones.NotificarEmergencia(notif);
+
+return CreatedAtAction(nameof(GetById), new { id = resultado.Id },
+    new { exitoso = true, data = resultado });
+    }
+
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetById(Guid id)
+    {
+        var triage = await _triageService.ObtenerPorIdAsync(id);
+        if (triage == null) return NotFound();
+        return Ok(new { exitoso = true, data = triage });
+    }
+
+    [HttpGet("paciente/{pacienteId:guid}")]
+    public async Task<IActionResult> GetByPaciente(Guid pacienteId) =>
+        Ok(new { exitoso = true, data = await _triageService.ObtenerPorPacienteAsync(pacienteId) });
+
+    [HttpGet("reporte")]
+    [Authorize(Roles = "Admin,Staff")]
+    public async Task<IActionResult> GetByFecha(
+        [FromQuery] DateTime desde,
+        [FromQuery] DateTime hasta) =>
+        Ok(new { exitoso = true, data = await _triageService.ObtenerPorFechaAsync(desde, hasta) });
+}

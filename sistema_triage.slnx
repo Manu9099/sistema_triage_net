@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="sistema_triage.API/sistema_triage.API.csproj" />
+  <Project Path="sistema_triage.Application/sistema_triage.Application.csproj" />
+  <Project Path="sistema_triage.Domain/sistema_triage.Domain.csproj" />
+  <Project Path="sistema_triage.Infrastructure/sistema_triage.Infrastructure.csproj" />
+</Solution>

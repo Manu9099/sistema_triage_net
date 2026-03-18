@@ -1,0 +1,19 @@
+# .NET
+**/bin/
+**/obj/
+**/publish/
+**/publish-linux/
+*.user
+*.suo
+.vs/
+
+# Node
+**/node_modules/
+**/dist/
+
+# Secretos
+**/appsettings.Production.json
+**/*.zip
+
+# Azure
+.azure/
