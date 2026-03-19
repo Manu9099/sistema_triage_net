@@ -14,12 +14,12 @@ export function AdminDashboard() {
     const desde = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()).toISOString()
     const hasta = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 23, 59, 59).toISOString()
 
-    Promise.all([
-      pacientesApi.getAllList(),
-      triageApi.getReporte(desde, hasta)
-    ])
-      .then(([p, t]) => { setPacientes(p); setTriages(t) })
-      .finally(() => setLoading(false))
+Promise.all([
+  pacientesApi.getAllList(),
+  triageApi.getReportePaginado(desde, hasta, 1, 1000)
+])
+  .then(([p, t]) => { setPacientes(p); setTriages(t.data) })
+  .finally(() => setLoading(false))
   }, [])
 
   const emergencias = triages.filter(t => t.nivel === 1).length
