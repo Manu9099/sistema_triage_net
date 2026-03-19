@@ -15,7 +15,7 @@ export function AdminDashboard() {
     const hasta = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 23, 59, 59).toISOString()
 
     Promise.all([
-      pacientesApi.getAll(),
+      pacientesApi.getAllList(),
       triageApi.getReporte(desde, hasta)
     ])
       .then(([p, t]) => { setPacientes(p); setTriages(t) })

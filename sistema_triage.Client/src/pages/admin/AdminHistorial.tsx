@@ -4,6 +4,7 @@ import { pacientesApi } from '../../api/pacientes'
 import { triageApi } from '../../api/triage'
 import type { Paciente, TriageResponse } from '../../types'
 import { exportarTriagePDF } from '../../utils/exportarPDF'
+import { ModalSeguimiento } from '../../components/ui/ModalSeguimiento'
 
 const NIVEL_CONFIG: Record<number, { label: string; color: string; bg: string; dot: string }> = {
   1: { label: 'Emergencia', color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20', dot: 'bg-red-500' },
@@ -12,7 +13,13 @@ const NIVEL_CONFIG: Record<number, { label: string; color: string; bg: string; d
   4: { label: 'No urgente', color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20', dot: 'bg-green-500' },
 }
 
-function TriageCard({ triage }: { triage: TriageResponse }) {
+function TriageCard({
+  triage,
+  onSeguimiento,
+}: {
+  triage: TriageResponse
+  onSeguimiento: (triage: TriageResponse) => void
+}) {
   const [expandido, setExpandido] = useState(false)
   const cfg = NIVEL_CONFIG[triage.nivel] ?? NIVEL_CONFIG[4]
 
@@ -60,10 +67,11 @@ function TriageCard({ triage }: { triage: TriageResponse }) {
 
       {expandido && (
         <div className="border-t border-gray-800 p-4 space-y-4">
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
             <button
               onClick={() => exportarTriagePDF(triage)}
               className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white text-xs rounded-lg transition-colors"
+              type="button"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -71,6 +79,14 @@ function TriageCard({ triage }: { triage: TriageResponse }) {
                 <line x1="12" y1="15" x2="12" y2="3" />
               </svg>
               Exportar PDF
+            </button>
+
+            <button
+              onClick={() => onSeguimiento(triage)}
+              type="button"
+              className="px-2.5 py-1.5 bg-green-500/10 hover:bg-green-500/20 text-green-400 text-xs rounded-lg transition-colors"
+            >
+              Seguimiento
             </button>
           </div>
 
@@ -216,23 +232,24 @@ export function AdminHistorial() {
   const [termino, setTermino] = useState('')
   const [loading, setLoading] = useState(false)
   const [loadingPacientes, setLoadingPacientes] = useState(true)
+  const [triageSeguimiento, setTriageSeguimiento] = useState<TriageResponse | null>(null)
 
   useEffect(() => {
     pacientesApi
-      .getAll()
+      .getAllList()
       .then(setPacientes)
       .finally(() => setLoadingPacientes(false))
   }, [])
 
   const buscarPacientes = async () => {
     if (!termino.trim()) {
-      const todos = await pacientesApi.getAll()
+      const todos = await pacientesApi.getAllList()
       setPacientes(todos)
       return
     }
 
-    const res = await pacientesApi.buscar(termino)
-    setPacientes(res)
+    const res = await (await pacientesApi.buscar(termino)).data
+   setPacientes(res)
   }
 
   const seleccionarPaciente = async (p: Paciente) => {
@@ -248,7 +265,8 @@ export function AdminHistorial() {
     }
   }
 
-  const nivelMasCritico = triages.length > 0 ? Math.min(...triages.map(t => t.nivel)) : null
+  const nivelMasCritico =
+    triages.length > 0 ? Math.min(...triages.map(t => t.nivel)) : null
 
   return (
     <div className="p-8">
@@ -365,6 +383,14 @@ export function AdminHistorial() {
                 )}
               </div>
 
+              {triageSeguimiento && (
+                <ModalSeguimiento
+                  triage={triageSeguimiento}
+                  onClose={() => setTriageSeguimiento(null)}
+                  onRegistrado={() => setTriageSeguimiento(null)}
+                />
+              )}
+
               {loading ? (
                 <div className="flex justify-center py-8">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500" />
@@ -376,7 +402,11 @@ export function AdminHistorial() {
               ) : (
                 <div className="space-y-3">
                   {triages.map(t => (
-                    <TriageCard key={t.id} triage={t} />
+                    <TriageCard
+                      key={t.id}
+                      triage={t}
+                      onSeguimiento={setTriageSeguimiento}
+                    />
                   ))}
                 </div>
               )}

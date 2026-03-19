@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using sistema_triage.Domain.Entities;
 using sistema_triage.Domain.Interfaces;
+using sistema_triage.Domain.Models;
 using sistema_triage.Infrastructure.Data;
+using sistema_triage.Infrastructure.Extensions;
 
 namespace sistema_triage.Infrastructure.Repositories;
 
@@ -28,4 +30,25 @@ public class PacienteRepository : Repository<Paciente>, IPacienteRepository
             .OrderBy(p => p.Apellidos)
             .Take(50)
             .ToListAsync();
+
+
+ public async Task<PaginatedResult<Paciente>> GetPaginadoAsync(string? busqueda, int page, int pageSize)
+{
+    var query = _dbSet.Where(p => p.Activo).AsQueryable();
+
+    if (!string.IsNullOrEmpty(busqueda))
+    {
+        var lower = busqueda.ToLower();
+        query = query.Where(p =>
+            p.Nombres.ToLower().Contains(lower) ||
+            p.Apellidos.ToLower().Contains(lower) ||
+            p.NumeroDocumento.ToLower().Contains(lower));
+    }
+
+    return await query
+        .OrderBy(p => p.Apellidos)
+        .ToPaginatedAsync(page, pageSize);
 }
+}
+
+

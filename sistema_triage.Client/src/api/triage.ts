@@ -1,5 +1,5 @@
 import api from './client'
-import type { CrearTriageDto, TriageResponse, ApiResponse } from '../types'
+import type { CrearTriageDto, TriageResponse, ApiResponse, PaginatedResponse } from '../types'
 
 export const triageApi = {
   registrar: async (dto: CrearTriageDto): Promise<TriageResponse> => {
@@ -17,5 +17,19 @@ export const triageApi = {
   getReporte: async (desde: string, hasta: string): Promise<TriageResponse[]> => {
     const res = await api.get<ApiResponse<TriageResponse[]>>(`/triage/reporte?desde=${desde}&hasta=${hasta}`)
     return res.data.data
-  }
+  },
+getReportePaginado: async (desde: string, hasta: string, page = 1, pageSize = 10): Promise<PaginatedResponse<TriageResponse>> => {
+  const res = await api.get<ApiResponse<PaginatedResponse<TriageResponse>>>(
+    `/triage/reporte?desde=${desde}&hasta=${hasta}&page=${page}&pageSize=${pageSize}`
+  )
+  return res.data.data
+},
+
+getByPacientePaginado: async (pacienteId: string, page = 1, pageSize = 10): Promise<PaginatedResponse<TriageResponse>> => {
+  const res = await api.get<ApiResponse<PaginatedResponse<TriageResponse>>>(
+    `/triage/paciente/${pacienteId}?page=${page}&pageSize=${pageSize}`
+  )
+  return res.data.data
+},
+
 }

@@ -2,6 +2,7 @@ using sistema_triage.Application.DTOs.Paciente;
 using sistema_triage.Application.Services.Interfaces;
 using sistema_triage.Domain.Entities;
 using sistema_triage.Domain.Interfaces;
+using sistema_triage.Domain.Models;
 
 namespace sistema_triage.Application.Services;
 
@@ -146,4 +147,17 @@ public class PacienteService : IPacienteService
     return paciente == null ? null : MapToDto(paciente);
 }
 
+public async Task<PaginatedResult<PacienteResponseDto>> ObtenerPaginadoAsync(
+    string? busqueda, int page, int pageSize)
+{
+    var result = await _repo.GetPaginadoAsync(busqueda, page, pageSize);
+    return new PaginatedResult<PacienteResponseDto>
+    {
+        Data = result.Data.Select(MapToDto),
+        TotalItems = result.TotalItems,
+        Page = result.Page,
+        PageSize = result.PageSize
+    };
 }
+}
+

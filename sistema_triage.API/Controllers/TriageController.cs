@@ -62,14 +62,25 @@ return CreatedAtAction(nameof(GetById), new { id = resultado.Id },
         return Ok(new { exitoso = true, data = triage });
     }
 
-    [HttpGet("paciente/{pacienteId:guid}")]
-    public async Task<IActionResult> GetByPaciente(Guid pacienteId) =>
-        Ok(new { exitoso = true, data = await _triageService.ObtenerPorPacienteAsync(pacienteId) });
+ [HttpGet("reporte")]
+[Authorize(Roles = "Admin,Staff")]
+public async Task<IActionResult> GetReporte(
+    [FromQuery] DateTime desde,
+    [FromQuery] DateTime hasta,
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 10)
+{
+    var result = await _triageService.ObtenerPorFechaPaginadoAsync(desde, hasta, page, pageSize);
+    return Ok(new { exitoso = true, data = result });
+}
 
-    [HttpGet("reporte")]
-    [Authorize(Roles = "Admin,Staff")]
-    public async Task<IActionResult> GetByFecha(
-        [FromQuery] DateTime desde,
-        [FromQuery] DateTime hasta) =>
-        Ok(new { exitoso = true, data = await _triageService.ObtenerPorFechaAsync(desde, hasta) });
+[HttpGet("paciente/{pacienteId:guid}")]
+public async Task<IActionResult> GetByPaciente(
+    Guid pacienteId,
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 10)
+{
+    var result = await _triageService.ObtenerPorPacientePaginadoAsync(pacienteId, page, pageSize);
+    return Ok(new { exitoso = true, data = result });
+}
 }

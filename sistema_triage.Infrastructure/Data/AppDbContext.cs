@@ -12,6 +12,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<TriageRegistro> TriageRegistros => Set<TriageRegistro>();
     public DbSet<SlotDisponibilidad> Slots => Set<SlotDisponibilidad>();
     public DbSet<Cita> Citas => Set<Cita>();
+    public DbSet<SeguimientoTriage> Seguimientos => Set<SeguimientoTriage>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -70,6 +71,17 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             e.Property(c => c.NotasStaff).HasMaxLength(500);
             e.Property(c => c.MotivoRechazo).HasMaxLength(300);
             });
+            builder.Entity<SeguimientoTriage>(e =>
+                {
+                    e.HasKey(s => s.Id);
+                    e.HasOne(s => s.Triage)
+                    .WithOne()
+                    .HasForeignKey<SeguimientoTriage>(s => s.TriageId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                    e.Property(s => s.DiagnosticoConfirmado).HasMaxLength(200);
+                    e.Property(s => s.Observaciones).HasMaxLength(500);
+                    e.Property(s => s.MedicamentosIndicados).HasMaxLength(500);
+                });
 
 
         // Renombrar tablas de Identity para que queden más limpias

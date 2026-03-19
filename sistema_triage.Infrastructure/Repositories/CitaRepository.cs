@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using sistema_triage.Domain.Entities;
 using sistema_triage.Domain.Interfaces;
+using sistema_triage.Domain.Models;
 using sistema_triage.Infrastructure.Data;
+using sistema_triage.Infrastructure.Extensions;
 
 namespace sistema_triage.Infrastructure.Repositories;
 
@@ -37,4 +39,17 @@ public class CitaRepository : Repository<Cita>, ICitaRepository
             .Where(c => c.Estado == Domain.Enums.EstadoCita.Pendiente)
             .OrderBy(c => c.Slot.FechaHoraInicio)
             .ToListAsync();
+
+public async Task<PaginatedResult<Cita>> GetByFechaPaginadoAsync(
+    DateTime desde, DateTime hasta, int page, int pageSize)
+{
+    return await _dbSet
+        .Include(c => c.Paciente)
+        .Include(c => c.Slot).ThenInclude(s => s.Staff)
+        .Where(c => c.Slot.FechaHoraInicio >= desde && c.Slot.FechaHoraInicio <= hasta)
+        .OrderBy(c => c.Slot.FechaHoraInicio)
+        .ToPaginatedAsync(page, pageSize);
+}
+
+
 }

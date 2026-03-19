@@ -5,6 +5,7 @@ using sistema_triage.Domain.Entities;
 using sistema_triage.Domain.Enums;
 using sistema_triage.Domain.Interfaces;
 using sistema_triage.Application.Diagnostico;
+using sistema_triage.Domain.Models;
 
 namespace sistema_triage.Application.Services;
 
@@ -250,4 +251,41 @@ private static List<Application.Diagnostico.Models.ResultadoDiagnostico> Recalcu
         sintomas.AddRange(JsonSerializer.Deserialize<List<string>>(t.SintomasGeneralJson) ?? new());
     return MotorDiagnostico.Analizar(sintomas, t.Edad);
 }
+public async Task<PaginatedResult<TriageResponseDto>> ObtenerPorFechaPaginadoAsync(
+    DateTime desde, DateTime hasta, int page, int pageSize)
+{
+    var result = await _repo.GetByFechaPaginadoAsync(desde, hasta, page, pageSize);
+    return new PaginatedResult<TriageResponseDto>
+    {
+        Data = result.Data.Select(t => {
+            var dto = MapToDto(t, t.Paciente);
+            dto.DiagnosticosDiferenciales = RecalcularDiagnosticos(t);
+            return dto;
+        }),
+        TotalItems = result.TotalItems,
+        Page = result.Page,
+        PageSize = result.PageSize
+    };
+}
+
+public async Task<PaginatedResult<TriageResponseDto>> ObtenerPorPacientePaginadoAsync(
+    Guid pacienteId, int page, int pageSize)
+{
+    var paciente = await _pacienteRepo.GetByIdAsync(pacienteId);
+    if (paciente == null) return new PaginatedResult<TriageResponseDto>();
+
+    var result = await _repo.GetByPacientePaginadoAsync(pacienteId, page, pageSize);
+    return new PaginatedResult<TriageResponseDto>
+    {
+        Data = result.Data.Select(t => {
+            var dto = MapToDto(t, paciente);
+            dto.DiagnosticosDiferenciales = RecalcularDiagnosticos(t);
+            return dto;
+        }),
+        TotalItems = result.TotalItems,
+        Page = result.Page,
+        PageSize = result.PageSize
+    };
+}
+
 }

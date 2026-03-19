@@ -167,3 +167,37 @@ export interface Cita {
   fechaSolicitud: string
   fechaConfirmacion?: string
 }
+export interface PaginatedResponse<T> {
+  data: T[]
+  totalItems: number
+  page: number
+  pageSize: number
+  totalPages: number
+  hasPrevious: boolean
+  hasNext: boolean
+}
+export interface RegistrarSeguimientoDto {
+  triageId: string
+  fueAtendido: boolean
+  diagnosticoConfirmado?: string
+  nivelTriageCorrecto: boolean
+  nivelTriageReal?: number
+  observaciones?: string
+  medicamentosIndicados?: string
+}
+
+export interface SeguimientoResponse {
+  id: string
+  triageId: string
+  nombrePaciente: string
+  fueAtendido: boolean
+  diagnosticoConfirmado?: string
+  nivelTriageCorrecto: boolean
+  nivelTriageReal?: number
+  observaciones?: string
+  medicamentosIndicados?: string
+  registradoPor: string
+  fechaRegistro: string
+  nivelTriageOriginal: number
+  fechaTriage: string
+}

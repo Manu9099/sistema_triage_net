@@ -14,6 +14,7 @@ public static class DependencyInjection
         services.AddScoped<ITriageService, TriageService>();
         services.AddScoped<ICitaService, CitaService>();
         services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
+        services.AddScoped<ISeguimientoService, SeguimientoService>();
         return services;
     }
 }

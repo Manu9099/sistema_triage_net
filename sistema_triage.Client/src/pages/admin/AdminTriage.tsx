@@ -81,7 +81,7 @@ export function AdminTriage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    pacientesApi.getAll().then(setPacientes)
+    pacientesApi.getAllList().then(setPacientes)
   }, [])
 
   const toggle = (id: string) => {

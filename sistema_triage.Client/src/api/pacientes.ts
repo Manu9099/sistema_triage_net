@@ -1,19 +1,23 @@
 import api from './client'
-import type { Paciente, CrearPacienteDto, ApiResponse, ActualizarPacienteDto } from '../types'
+import type { Paciente, CrearPacienteDto, ApiResponse, ActualizarPacienteDto, PaginatedResponse } from '../types'
 
 export const pacientesApi = {
-  getAll: async (): Promise<Paciente[]> => {
-    const res = await api.get<ApiResponse<Paciente[]>>('/pacientes')
-    return res.data.data
-  },
+getAll: async (page = 1, pageSize = 10): Promise<PaginatedResponse<Paciente>> => {
+  const res = await api.get<ApiResponse<PaginatedResponse<Paciente>>>(
+    `/pacientes?page=${page}&pageSize=${pageSize}`
+  )
+  return res.data.data
+},
   getById: async (id: string): Promise<Paciente> => {
     const res = await api.get<ApiResponse<Paciente>>(`/pacientes/${id}`)
     return res.data.data
   },
-  buscar: async (termino: string): Promise<Paciente[]> => {
-    const res = await api.get<ApiResponse<Paciente[]>>(`/pacientes/buscar?termino=${termino}`)
-    return res.data.data
-  },
+buscar: async (termino: string, page = 1, pageSize = 10): Promise<PaginatedResponse<Paciente>> => {
+  const res = await api.get<ApiResponse<PaginatedResponse<Paciente>>>(
+    `/pacientes?busqueda=${termino}&page=${page}&pageSize=${pageSize}`
+  )
+  return res.data.data
+},
   crear: async (dto: CrearPacienteDto): Promise<Paciente> => {
     const res = await api.post<ApiResponse<Paciente>>('/pacientes', dto)
     return res.data.data
@@ -46,5 +50,12 @@ getByDocumento: async (documento: string): Promise<Paciente | null> => {
 desactivar: async (id: string): Promise<void> => {
   await api.delete(`/pacientes/${id}`)
 },
+getAllList: async (): Promise<Paciente[]> => {
+  const res = await api.get<ApiResponse<PaginatedResponse<Paciente>>>(
+    `/pacientes?page=1&pageSize=1000`
+  )
+  return res.data.data.data
+},
+
 
 }

@@ -106,4 +106,15 @@ public async Task<IActionResult> GetMiPerfil()
 
     return Ok(new { exitoso = true, data = paciente });
 }
+
+[HttpGet]
+public async Task<IActionResult> GetAll(
+    [FromQuery] string? busqueda,
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 10)
+{
+    var result = await _pacienteService.ObtenerPaginadoAsync(busqueda, page, pageSize);
+    return Ok(new { exitoso = true, data = result });
+}
+
 }
