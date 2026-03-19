@@ -119,3 +119,51 @@ export interface ActualizarPacienteDto {
   alergias?: string
   comorbilidades?: string
 }
+export interface SlotDisponibilidad {
+  id: string
+  fechaHoraInicio: string
+  fechaHoraFin: string
+  disponible: boolean
+  nombreStaff: string
+  fecha: string
+  hora: string
+}
+
+export interface SolicitarCitaDto {
+  slotId: string
+  motivoConsulta?: string
+}
+
+export interface CrearSlotDto {
+  fechaHoraInicio: string
+  duracionMinutos: number
+  cantidadSlots: number
+}
+
+export interface GestionarCitaDto {
+  accion: string
+  notasStaff?: string
+  motivoRechazo?: string
+  nuevoSlotId?: string
+}
+
+export interface Cita {
+  id: string
+  pacienteId: string
+  nombrePaciente: string
+  numeroDocumento: string
+  emailPaciente?: string
+  telefonoPaciente?: string
+  fechaHoraInicio: string
+  fechaHoraFin: string
+  fecha: string
+  hora: string
+  motivoConsulta?: string
+  estado: number
+  estadoDescripcion: string
+  notasStaff?: string
+  motivoRechazo?: string
+  nombreStaff: string
+  fechaSolicitud: string
+  fechaConfirmacion?: string
+}

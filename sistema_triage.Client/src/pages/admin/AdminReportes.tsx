@@ -171,7 +171,7 @@ export function AdminReportes() {
               <p className="text-sm">No hay triages en el rango seleccionado</p>
             </div>
           ) : vistaTabla ? (
-            <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden overflow-x-auto"> l
+            <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden overflow-x-auto"> 
               <table className="w-full min-w-[1100px]">
                 <thead>
                   <tr className="border-b border-gray-800">

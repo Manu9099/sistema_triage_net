@@ -1,6 +1,6 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
-import { Home, ClipboardList, Clock, User, LogOut } from 'lucide-react'
+import { Home, ClipboardList, Clock,  Calendar, User, LogOut } from 'lucide-react'
 
 export function PacienteLayout() {
   const { user, logout } = useAuth()
@@ -36,11 +36,18 @@ export function PacienteLayout() {
       <Clock size={16} />
       Mi historial
     </NavLink>
-    <NavLink to="/paciente/perfil" className={({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors ${isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}>
-    <User size={16} />
-    Mi perfil
+          <NavLink to="/paciente/perfil" className={({ isActive }: { isActive: boolean }) =>
+          `flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors ${isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}>
+          <User size={16} />
+          Mi perfil
         </NavLink>
+
+        <NavLink to="/paciente/citas" className={({ isActive }: { isActive: boolean }) =>
+        `flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors ${isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}>
+        <Calendar size={16} />
+        Mis citas
+      </NavLink>
+
           </nav>
           <div className="flex items-center gap-3">
             <div className="text-right">

@@ -10,6 +10,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<Paciente> Pacientes => Set<Paciente>();
     public DbSet<TriageRegistro> TriageRegistros => Set<TriageRegistro>();
+    public DbSet<SlotDisponibilidad> Slots => Set<SlotDisponibilidad>();
+    public DbSet<Cita> Citas => Set<Cita>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -41,7 +43,34 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
              .WithMany()
              .HasForeignKey(t => t.UsuarioRegistraId)
              .OnDelete(DeleteBehavior.Restrict);
+        
+        
         });
+        builder.Entity<SlotDisponibilidad>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.HasOne(s => s.Staff)
+            .WithMany()
+            .HasForeignKey(s => s.StaffId)
+            .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(s => s.Cita)
+            .WithOne(c => c.Slot)
+            .HasForeignKey<Cita>(c => c.SlotId)
+            .OnDelete(DeleteBehavior.Restrict);
+        });
+
+                builder.Entity<Cita>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.HasOne(c => c.Paciente)
+            .WithMany()
+            .HasForeignKey(c => c.PacienteId)
+            .OnDelete(DeleteBehavior.Restrict);
+            e.Property(c => c.MotivoConsulta).HasMaxLength(500);
+            e.Property(c => c.NotasStaff).HasMaxLength(500);
+            e.Property(c => c.MotivoRechazo).HasMaxLength(300);
+            });
+
 
         // Renombrar tablas de Identity para que queden más limpias
         builder.Entity<ApplicationUser>().ToTable("Usuarios");

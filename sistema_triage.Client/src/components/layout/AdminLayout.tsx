@@ -1,7 +1,8 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
-import { LayoutDashboard, Users, ClipboardList, Clock, BarChart2, LogOut } from 'lucide-react'
+import { LayoutDashboard, Users, ClipboardList, Clock, Calendar, BarChart2, LogOut } from 'lucide-react'
 import { Notificaciones } from '../ui/Notificaciones'
+
 
 export function AdminLayout() {
   const { user, logout } = useAuth()
@@ -52,6 +53,12 @@ export function AdminLayout() {
             <BarChart2 size={16} />
             Reportes
           </NavLink>
+
+          <NavLink to="/admin/citas" className={({ isActive }: { isActive: boolean }) =>
+          `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${isActive ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}>
+          <Calendar size={16} />
+          Citas
+        </NavLink>
 
         </nav>
 

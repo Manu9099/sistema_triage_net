@@ -22,6 +22,10 @@ import { PacienteTriage } from './pages/paciente/PacienteTriage'
 import { PacienteHistorial } from './pages/paciente/PacienteHistorial'
 import { PacientePerfil } from './pages/paciente/PacientePerfil'
 
+//portal Citas
+import { AdminCitas } from './pages/admin/AdminCitas'
+import { PacienteCitas } from './pages/paciente/PacienteCitas'
+
 function RootRedirect() {
   const { isAuthenticated, hasRole } = useAuth()
   if (!isAuthenticated) return <Navigate to="/login" replace />
@@ -47,11 +51,13 @@ export default function App() {
         <Route path="triage" element={<AdminTriage />} />
         <Route path="historial" element={<AdminHistorial />} />
         <Route path="reportes" element={<AdminReportes />} />
+        <Route path="citas" element={<AdminCitas />} />
       </Route>
 
       {/* Portal Paciente */}
       <Route path="/paciente" element={
         <ProtectedRoute roles={['Paciente']}>
+        
           <PacienteLayout />
         </ProtectedRoute>
       }>
@@ -59,6 +65,7 @@ export default function App() {
         <Route path="triage" element={<PacienteTriage />} />
         <Route path="historial" element={<PacienteHistorial />} />
         <Route path="perfil" element={<PacientePerfil />} />
+          <Route path="citas" element={<PacienteCitas />} />
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />

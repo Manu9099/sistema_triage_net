@@ -23,6 +23,8 @@ public static class DependencyInjection
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         services.AddScoped<IPacienteRepository, PacienteRepository>();
         services.AddScoped<ITriageRepository, TriageRepository>();
+        services.AddScoped<ISlotRepository, SlotRepository>();
+        services.AddScoped<ICitaRepository, CitaRepository>();
 
         // Azure Blob — mock en desarrollo, real cuando se configure Azure
         var blobConnectionString = configuration["Azure:BlobConnectionString"];
