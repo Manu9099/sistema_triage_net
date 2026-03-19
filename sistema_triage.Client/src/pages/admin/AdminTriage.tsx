@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { ChevronRight, ChevronLeft, CheckCircle, AlertTriangle } from 'lucide-react'
 import { pacientesApi } from '../../api/pacientes'
 import { triageApi } from '../../api/triage'
 import type { Paciente, TriageResponse } from '../../types'
@@ -6,41 +7,41 @@ import { exportarTriagePDF } from '../../utils/exportarPDF'
 
 const SINTOMAS = {
   alarma: [
-    { id: 'glasgow', label: 'Alteración de consciencia' },
-    { id: 'disnea_severa', label: 'Dificultad respiratoria severa' },
-    { id: 'dolor_pecho', label: 'Dolor de pecho' },
-    { id: 'paralisis', label: 'Parálisis o hemiplejia' },
-    { id: 'convulsion', label: 'Convulsión activa' },
-    { id: 'hemoptisis', label: 'Vómito con sangre' },
-    { id: 'pa_baja', label: 'Presión arterial muy baja' },
-    { id: 'cianosis', label: 'Labios o piel azulados' },
+    { id: 'glasgow',      label: 'Alteración de consciencia' },
+    { id: 'disnea_severa',label: 'Dificultad respiratoria severa' },
+    { id: 'dolor_pecho',  label: 'Dolor de pecho' },
+    { id: 'paralisis',    label: 'Parálisis o hemiplejia' },
+    { id: 'convulsion',   label: 'Convulsión activa' },
+    { id: 'hemoptisis',   label: 'Vómito con sangre' },
+    { id: 'pa_baja',      label: 'Presión arterial muy baja' },
+    { id: 'cianosis',     label: 'Labios o piel azulados' },
   ],
   resp: [
-    { id: 'tos', label: 'Tos' },
-    { id: 'esputo', label: 'Expectoración' },
-    { id: 'disnea', label: 'Falta de aire' },
-    { id: 'sibilan', label: 'Sibilancias' },
+    { id: 'tos',      label: 'Tos' },
+    { id: 'esputo',   label: 'Expectoración' },
+    { id: 'disnea',   label: 'Falta de aire' },
+    { id: 'sibilan',  label: 'Sibilancias' },
     { id: 'rinorrea', label: 'Congestión nasal' },
   ],
   cardio: [
     { id: 'palpitaciones', label: 'Palpitaciones' },
-    { id: 'edema', label: 'Edema en piernas' },
-    { id: 'mareo', label: 'Mareo' },
-    { id: 'sincope', label: 'Síncope' },
+    { id: 'edema',         label: 'Edema en piernas' },
+    { id: 'mareo',         label: 'Mareo' },
+    { id: 'sincope',       label: 'Síncope' },
   ],
   digest: [
-    { id: 'nausea', label: 'Náuseas' },
-    { id: 'vomito', label: 'Vómito' },
-    { id: 'diarrea', label: 'Diarrea' },
-    { id: 'dolor_abd', label: 'Dolor abdominal' },
-    { id: 'ictericia', label: 'Ictericia' },
+    { id: 'nausea',     label: 'Náuseas' },
+    { id: 'vomito',     label: 'Vómito' },
+    { id: 'diarrea',    label: 'Diarrea' },
+    { id: 'dolor_abd',  label: 'Dolor abdominal' },
+    { id: 'ictericia',  label: 'Ictericia' },
   ],
   general: [
-    { id: 'fiebre', label: 'Fiebre' },
-    { id: 'cefalea', label: 'Cefalea' },
-    { id: 'astenia', label: 'Fatiga intensa' },
-    { id: 'perdida_peso', label: 'Pérdida de peso' },
-    { id: 'adenopatias', label: 'Ganglios inflamados' },
+    { id: 'fiebre',        label: 'Fiebre' },
+    { id: 'cefalea',       label: 'Cefalea' },
+    { id: 'astenia',       label: 'Fatiga intensa' },
+    { id: 'perdida_peso',  label: 'Pérdida de peso' },
+    { id: 'adenopatias',   label: 'Ganglios inflamados' },
   ],
 }
 
@@ -61,15 +62,33 @@ interface SignosVitales {
 }
 
 const SIGNOS_INICIALES: SignosVitales = {
-  temperatura: '',
-  frecuenciaCardiaca: '',
-  frecuenciaRespiratoria: '',
-  saturacionOxigeno: '',
-  presionArterial: '',
-  glucosa: '',
+  temperatura: '', frecuenciaCardiaca: '', frecuenciaRespiratoria: '',
+  saturacionOxigeno: '', presionArterial: '', glucosa: '',
+}
+
+const PASOS = [
+  { id: 1, label: 'Paciente',      desc: 'Selección' },
+  { id: 2, label: 'Signos alarma', desc: 'Urgencia' },
+  { id: 3, label: 'Síntomas',      desc: 'Por sistema' },
+  { id: 4, label: 'Vitales',       desc: 'Mediciones' },
+  { id: 5, label: 'Confirmar',     desc: 'Resumen' },
+]
+
+function SintomaBtn({ label, activo, onClick }: { label: string; activo: boolean; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick}
+      className={`px-3 py-2 rounded-xl text-sm border transition-all ${
+        activo
+          ? 'bg-blue-600 border-blue-500 text-white'
+          : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-500'
+      }`}>
+      {label}
+    </button>
+  )
 }
 
 export function AdminTriage() {
+  const [paso, setPaso] = useState(1)
   const [pacientes, setPacientes] = useState<Paciente[]>([])
   const [pacienteId, setPacienteId] = useState('')
   const [inicio, setInicio] = useState('agudo')
@@ -84,17 +103,24 @@ export function AdminTriage() {
     pacientesApi.getAllList().then(setPacientes)
   }, [])
 
-  const toggle = (id: string) => {
+  const toggle = (id: string) =>
     setSelected(prev => ({ ...prev, [id]: !prev[id] }))
-  }
 
-  const getSintomas = (grupo: { id: string }[]) => {
-    return grupo.filter(s => selected[s.id]).map(s => s.id)
-  }
+  const getSintomas = (grupo: { id: string }[]) =>
+    grupo.filter(s => selected[s.id]).map(s => s.id)
 
-  const setSigno = (k: keyof SignosVitales, v: string) => {
+  const setSigno = (k: keyof SignosVitales, v: string) =>
     setSignos(prev => ({ ...prev, [k]: v }))
-  }
+
+  const totalSintomas = [
+    ...getSintomas(SINTOMAS.alarma),
+    ...getSintomas(SINTOMAS.resp),
+    ...getSintomas(SINTOMAS.cardio),
+    ...getSintomas(SINTOMAS.digest),
+    ...getSintomas(SINTOMAS.general),
+  ]
+
+  const pacienteActual = pacientes.find(p => p.id === pacienteId)
 
   const resetFormulario = () => {
     setResultado(null)
@@ -103,221 +129,93 @@ export function AdminTriage() {
     setSignos(SIGNOS_INICIALES)
     setError('')
     setInicio('agudo')
+    setPacienteId('')
+    setPaso(1)
+  }
+
+  const siguiente = () => {
+    if (paso === 1 && !pacienteId) { setError('Selecciona un paciente'); return }
+    if (paso === 3 && totalSintomas.length === 0) { setError('Selecciona al menos un síntoma'); return }
+    setError('')
+    setPaso(p => Math.min(p + 1, 5))
+  }
+
+  const anterior = () => {
+    setError('')
+    setPaso(p => Math.max(p - 1, 1))
   }
 
   const handleSubmit = async () => {
     if (!pacienteId) return
-
-    setError('')
-
-    const signosAlarma = getSintomas(SINTOMAS.alarma)
-    const sintomasResp = getSintomas(SINTOMAS.resp)
-    const sintomasCardio = getSintomas(SINTOMAS.cardio)
-    const sintomasDigest = getSintomas(SINTOMAS.digest)
-    const sintomasGeneral = getSintomas(SINTOMAS.general)
-
-    const totalSintomas = [
-      ...signosAlarma,
-      ...sintomasResp,
-      ...sintomasCardio,
-      ...sintomasDigest,
-      ...sintomasGeneral,
-    ]
-
-    if (totalSintomas.length === 0) {
-      setError('Debes seleccionar al menos un síntoma para continuar.')
-      return
-    }
-
     setLoading(true)
-
+    setError('')
     try {
       const res = await triageApi.registrar({
         pacienteId,
         inicioSintomas: inicio,
-        signosAlarma,
-        sintomasResp,
-        sintomasCardio,
-        sintomasDigest,
-        sintomasGeneral,
+        signosAlarma: getSintomas(SINTOMAS.alarma),
+        sintomasResp: getSintomas(SINTOMAS.resp),
+        sintomasCardio: getSintomas(SINTOMAS.cardio),
+        sintomasDigest: getSintomas(SINTOMAS.digest),
+        sintomasGeneral: getSintomas(SINTOMAS.general),
         observaciones: observaciones.trim() || undefined,
         temperatura: signos.temperatura ? parseFloat(signos.temperatura) : undefined,
-        frecuenciaCardiaca: signos.frecuenciaCardiaca ? parseInt(signos.frecuenciaCardiaca, 10) : undefined,
-        frecuenciaRespiratoria: signos.frecuenciaRespiratoria ? parseInt(signos.frecuenciaRespiratoria, 10) : undefined,
-        saturacionOxigeno: signos.saturacionOxigeno ? parseInt(signos.saturacionOxigeno, 10) : undefined,
+        frecuenciaCardiaca: signos.frecuenciaCardiaca ? parseInt(signos.frecuenciaCardiaca) : undefined,
+        frecuenciaRespiratoria: signos.frecuenciaRespiratoria ? parseInt(signos.frecuenciaRespiratoria) : undefined,
+        saturacionOxigeno: signos.saturacionOxigeno ? parseInt(signos.saturacionOxigeno) : undefined,
         presionArterial: signos.presionArterial.trim() || undefined,
         glucosa: signos.glucosa ? parseFloat(signos.glucosa) : undefined,
       })
-
       setResultado(res)
+    } catch (err: any) {
+      setError(err?.response?.data?.mensaje ?? 'Error al registrar triage')
     } finally {
       setLoading(false)
     }
   }
 
-  const SintomaGrid = ({ items }: { items: { id: string; label: string }[] }) => (
-    <div className="grid grid-cols-2 gap-2">
-      {items.map(s => (
-        <button
-          type="button"
-          key={s.id}
-          onClick={() => toggle(s.id)}
-          className={`text-left px-3 py-2 rounded-lg text-sm border transition-colors ${
-            selected[s.id]
-              ? 'bg-blue-600/20 border-blue-500/40 text-blue-300'
-              : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-600'
-          }`}
-        >
-          {s.label}
-        </button>
-      ))}
-    </div>
-  )
-
-  const inputSigno = (
-    label: string,
-    key: keyof SignosVitales,
-    placeholder: string,
-    unit: string
-  ) => (
-    <div>
-      <label className="block text-xs font-medium text-gray-400 mb-1">{label}</label>
-      <div className="flex items-center gap-2">
-        <input
-          value={signos[key]}
-          onChange={e => setSigno(key, e.target.value)}
-          placeholder={placeholder}
-          className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
-        />
-        <span className="text-xs text-gray-500 min-w-fit">{unit}</span>
-      </div>
-    </div>
-  )
-
+  // Resultado final
   if (resultado) {
     return (
       <div className="p-8 max-w-2xl">
-        <div className="flex items-center gap-3 mb-4">
-          <button
-            onClick={() => exportarTriagePDF(resultado)}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded-lg transition-colors"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-            Exportar PDF
-          </button>
-
-          <button
-            onClick={resetFormulario}
-            className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm rounded-lg"
-          >
-            Nuevo triage
-          </button>
+        <div className={`border rounded-2xl p-6 mb-6 ${NIVEL_COLORS[resultado.nivel ?? resultado.nivel]}`}>
+          <div className="flex items-center gap-2 mb-1">
+            <AlertTriangle size={16} />
+            <span className="text-sm font-semibold">Nivel {resultado.nivel ?? resultado.nivel} — {resultado.nivelDescripcion}</span>
+          </div>
+          <p className="text-xs opacity-80">{resultado.recomendacionClinica} · {resultado.tiempoAtencion}</p>
         </div>
 
-        <div className={`border rounded-xl p-5 mb-4 ${NIVEL_COLORS[resultado.nivel] ?? NIVEL_COLORS[4]}`}>
-          <p className="text-lg font-semibold">
-            Nivel {resultado.nivel} — {resultado.nivelDescripcion}
-          </p>
-          <p className="text-sm mt-1 opacity-80">{resultado.tiempoAtencion}</p>
-          <p className="text-sm mt-2">{resultado.recomendacionClinica}</p>
-        </div>
-
-        {resultado.alertasVitales?.length > 0 && (
-          <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-4">
-            <p className="text-sm font-medium text-red-400 mb-2">Alertas de signos vitales</p>
-            <ul className="space-y-1">
-              {resultado.alertasVitales.map(a => (
-                <li key={a} className="text-sm text-red-300 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
-                  {a}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {(resultado.temperatura != null ||
-          resultado.frecuenciaCardiaca != null ||
-          resultado.saturacionOxigeno != null ||
-          resultado.frecuenciaRespiratoria != null ||
-          resultado.presionArterial ||
-          resultado.glucosa != null) && (
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-4">
-            <p className="text-sm font-medium text-gray-300 mb-3">Signos vitales</p>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {resultado.temperatura != null && (
-                <div className="bg-gray-800 rounded-lg p-3 text-center">
-                  <p className="text-lg font-semibold text-white">{resultado.temperatura}°C</p>
-                  <p className="text-xs text-gray-400 mt-0.5">Temperatura</p>
-                </div>
-              )}
-
-              {resultado.frecuenciaCardiaca != null && (
-                <div className="bg-gray-800 rounded-lg p-3 text-center">
-                  <p className="text-lg font-semibold text-white">{resultado.frecuenciaCardiaca}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">FC (lpm)</p>
-                </div>
-              )}
-
-              {resultado.saturacionOxigeno != null && (
-                <div className="bg-gray-800 rounded-lg p-3 text-center">
-                  <p className="text-lg font-semibold text-white">{resultado.saturacionOxigeno}%</p>
-                  <p className="text-xs text-gray-400 mt-0.5">SpO2</p>
-                </div>
-              )}
-
-              {resultado.frecuenciaRespiratoria != null && (
-                <div className="bg-gray-800 rounded-lg p-3 text-center">
-                  <p className="text-lg font-semibold text-white">{resultado.frecuenciaRespiratoria}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">FR (rpm)</p>
-                </div>
-              )}
-
-              {resultado.presionArterial && (
-                <div className="bg-gray-800 rounded-lg p-3 text-center">
-                  <p className="text-lg font-semibold text-white">{resultado.presionArterial}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">PA (mmHg)</p>
-                </div>
-              )}
-
-              {resultado.glucosa != null && (
-                <div className="bg-gray-800 rounded-lg p-3 text-center">
-                  <p className="text-lg font-semibold text-white">{resultado.glucosa}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">Glucosa (mg/dL)</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-          <h3 className="text-sm font-medium text-gray-300 mb-4">Diagnósticos diferenciales</h3>
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-4">
+          <p className="text-xs text-gray-400 mb-3 font-medium">Diagnósticos diferenciales</p>
           <div className="space-y-3">
-            {resultado.diagnosticosDiferenciales.map((d, index) => (
-              <div key={`${d.codigo}-${index}`} className="bg-gray-800 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-sm font-medium text-white">{d.nombre}</p>
-                  <span className="text-sm font-semibold text-blue-400">{d.probabilidad}%</span>
+            {resultado.diagnosticosDiferenciales?.map((d, i) => (
+              <div key={d.codigo} className="flex items-center gap-3">
+                <span className="text-xs text-gray-600 w-4">{i + 1}</span>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <p className="text-sm text-white">{d.nombre}</p>
+                    <span className="text-xs font-semibold text-blue-400">{d.probabilidad}%</span>
+                  </div>
+                  <div className="w-full bg-gray-800 rounded-full h-1">
+                    <div className="bg-blue-500 h-1 rounded-full transition-all" style={{ width: `${d.probabilidad}%` }} />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5">{d.grupo}</p>
                 </div>
-
-                <div className="w-full bg-gray-700 rounded-full h-1.5 mb-2">
-                  <div
-                    className="bg-blue-500 h-1.5 rounded-full"
-                    style={{ width: `${d.probabilidad}%` }}
-                  />
-                </div>
-
-                <p className="text-xs text-gray-400">
-                  {d.grupo} — {d.nivelUrgencia}
-                </p>
-                <p className="text-xs text-gray-400 mt-1">{d.recomendacion}</p>
               </div>
             ))}
           </div>
+        </div>
+
+        <div className="flex gap-3">
+          <button onClick={() => exportarTriagePDF(resultado)} type="button"
+            className="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-white text-sm rounded-xl transition-colors">
+            Exportar PDF
+          </button>
+          <button onClick={resetFormulario} type="button"
+            className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors">
+            Nuevo triage
+          </button>
         </div>
       </div>
     )
@@ -326,125 +224,205 @@ export function AdminTriage() {
   return (
     <div className="p-8 max-w-2xl">
       <div className="mb-8">
-        <h2 className="text-2xl font-semibold text-white">Registrar triage</h2>
-        <p className="text-gray-400 mt-1 text-sm">
-          Selecciona paciente, signos vitales y síntomas
-        </p>
+        <h2 className="text-2xl font-semibold text-white mb-6">Registro de triage</h2>
+
+        {/* Stepper */}
+        <div className="flex items-center">
+          {PASOS.map((p, i) => (
+            <div key={p.id} className="flex items-center flex-1 last:flex-none">
+              <div className="flex flex-col items-center">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition-colors ${
+                  paso > p.id ? 'bg-blue-600 text-white' :
+                  paso === p.id ? 'bg-blue-600 text-white ring-4 ring-blue-500/20' :
+                  'bg-gray-800 text-gray-500'
+                }`}>
+                  {paso > p.id ? <CheckCircle size={14} /> : p.id}
+                </div>
+                <p className={`text-xs mt-1 font-medium ${paso >= p.id ? 'text-white' : 'text-gray-600'}`}>
+                  {p.label}
+                </p>
+              </div>
+              {i < PASOS.length - 1 && (
+                <div className={`flex-1 h-0.5 mx-2 mb-4 transition-colors ${paso > p.id ? 'bg-blue-600' : 'bg-gray-800'}`} />
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
-      <div className="space-y-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1.5">Paciente</label>
-          <select
-            value={pacienteId}
-            onChange={e => setPacienteId(e.target.value)}
-            className="w-full bg-gray-900 border border-gray-800 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500"
-          >
-            <option value="">Seleccionar paciente...</option>
-            {pacientes.map(p => (
-              <option key={p.id} value={p.id}>
-                {p.nombreCompleto} — {p.numeroDocumento}
-              </option>
-            ))}
-          </select>
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 mb-5">
+          <p className="text-red-400 text-sm">{error}</p>
         </div>
+      )}
 
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1.5">Inicio de síntomas</label>
-          <div className="flex gap-2">
-            {[
-              ['agudo', 'Agudo (&lt;24h)'],
-              ['subagudo', 'Subagudo (1-7d)'],
-              ['cronico', 'Crónico'],
-            ].map(([v, l]) => (
-              <button
-                type="button"
-                key={v}
-                onClick={() => setInicio(v)}
-                className={`flex-1 py-2 rounded-lg text-sm border transition-colors ${
-                  inicio === v
-                    ? 'bg-blue-600 border-blue-600 text-white'
-                    : 'bg-gray-900 border-gray-800 text-gray-400 hover:border-gray-700'
-                }`}
-              >
-                {l}
-              </button>
-            ))}
+      {/* Paso 1 — Paciente */}
+      {paso === 1 && (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">Paciente *</label>
+            <select value={pacienteId} onChange={e => setPacienteId(e.target.value)}
+              className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500">
+              <option value="">Seleccionar paciente...</option>
+              {pacientes.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.nombreCompleto} — {p.numeroDocumento}
+                </option>
+              ))}
+            </select>
           </div>
-        </div>
 
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-          <p className="text-sm font-medium text-gray-300 mb-4">
-            Signos vitales <span className="text-gray-500 font-normal">(opcionales)</span>
-          </p>
-          <div className="grid grid-cols-2 gap-4">
-            {inputSigno('Temperatura', 'temperatura', '36.5', '°C')}
-            {inputSigno('Frec. cardíaca', 'frecuenciaCardiaca', '80', 'lpm')}
-            {inputSigno('Frec. respiratoria', 'frecuenciaRespiratoria', '16', 'rpm')}
-            {inputSigno('Saturación O2', 'saturacionOxigeno', '98', '%')}
-            {inputSigno('Glucosa', 'glucosa', '100', 'mg/dL')}
+          {pacienteActual && (
+            <div className="bg-gray-800 rounded-xl p-4 text-sm space-y-1">
+              <p className="text-white font-medium">{pacienteActual.nombreCompleto}</p>
+              <p className="text-gray-400">{pacienteActual.edad} años · {pacienteActual.numeroDocumento}</p>
+              {pacienteActual.alergias && <p className="text-yellow-400 text-xs">⚠ Alergias: {pacienteActual.alergias}</p>}
+              {pacienteActual.comorbilidades && <p className="text-orange-400 text-xs">Comorbilidades: {pacienteActual.comorbilidades}</p>}
+            </div>
+          )}
 
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">Presión arterial</label>
-              <input
-                value={signos.presionArterial}
-                onChange={e => setSigno('presionArterial', e.target.value)}
-                placeholder="120/80"
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
-              />
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">Inicio de síntomas</label>
+            <div className="flex gap-2">
+              {['agudo', 'subagudo', 'cronico'].map(v => (
+                <button key={v} type="button" onClick={() => setInicio(v)}
+                  className={`flex-1 py-2 rounded-xl text-xs border transition-colors capitalize ${
+                    inicio === v ? 'bg-blue-600 border-blue-500 text-white' : 'bg-gray-800 border-gray-700 text-gray-300'
+                  }`}>
+                  {v === 'agudo' ? 'Agudo (horas)' : v === 'subagudo' ? 'Subagudo (días)' : 'Crónico (semanas)'}
+                </button>
+              ))}
             </div>
           </div>
         </div>
+      )}
 
+      {/* Paso 2 — Signos de alarma */}
+      {paso === 2 && (
         <div>
-          <p className="text-sm font-medium text-red-400 mb-2">Signos de alarma</p>
-          <SintomaGrid items={SINTOMAS.alarma} />
-        </div>
-
-        <div>
-          <p className="text-sm font-medium text-gray-300 mb-2">Sistema respiratorio</p>
-          <SintomaGrid items={SINTOMAS.resp} />
-        </div>
-
-        <div>
-          <p className="text-sm font-medium text-gray-300 mb-2">Sistema cardiovascular</p>
-          <SintomaGrid items={SINTOMAS.cardio} />
-        </div>
-
-        <div>
-          <p className="text-sm font-medium text-gray-300 mb-2">Sistema digestivo</p>
-          <SintomaGrid items={SINTOMAS.digest} />
-        </div>
-
-        <div>
-          <p className="text-sm font-medium text-gray-300 mb-2">Síntomas generales</p>
-          <SintomaGrid items={SINTOMAS.general} />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1.5">Observaciones</label>
-          <textarea
-            value={observaciones}
-            onChange={e => setObservaciones(e.target.value)}
-            rows={3}
-            className="w-full bg-gray-900 border border-gray-800 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500 resize-none"
-            placeholder="Observaciones clínicas adicionales..."
-          />
-        </div>
-
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">
-            <p className="text-sm text-red-300">{error}</p>
+          <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 mb-4">
+            <p className="text-red-400 text-xs font-medium">⚠ Signos de alarma — indican emergencia potencial</p>
           </div>
-        )}
+          <div className="flex flex-wrap gap-2">
+            {SINTOMAS.alarma.map(s => (
+              <SintomaBtn key={s.id} label={s.label} activo={!!selected[s.id]} onClick={() => toggle(s.id)} />
+            ))}
+          </div>
+          {getSintomas(SINTOMAS.alarma).length === 0 && (
+            <p className="text-xs text-gray-500 mt-3">Sin signos de alarma — continúa al siguiente paso</p>
+          )}
+        </div>
+      )}
 
-        <button
-          onClick={handleSubmit}
-          disabled={!pacienteId || loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-3 rounded-lg text-sm transition-colors"
-        >
-          {loading ? 'Procesando...' : 'Registrar triage y obtener diagnóstico'}
-        </button>
+      {/* Paso 3 — Síntomas por sistema */}
+      {paso === 3 && (
+        <div className="space-y-5">
+          {[
+            { label: '🫁 Respiratorios', grupo: SINTOMAS.resp },
+            { label: '❤️ Cardiovasculares', grupo: SINTOMAS.cardio },
+            { label: '🫃 Digestivos', grupo: SINTOMAS.digest },
+            { label: '🧠 Generales', grupo: SINTOMAS.general },
+          ].map(({ label, grupo }) => (
+            <div key={label}>
+              <p className="text-xs font-medium text-gray-400 mb-2">{label}</p>
+              <div className="flex flex-wrap gap-2">
+                {grupo.map(s => (
+                  <SintomaBtn key={s.id} label={s.label} activo={!!selected[s.id]} onClick={() => toggle(s.id)} />
+                ))}
+              </div>
+            </div>
+          ))}
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">Observaciones</label>
+            <textarea value={observaciones} onChange={e => setObservaciones(e.target.value)} rows={2}
+              placeholder="Notas adicionales..."
+              className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 resize-none" />
+          </div>
+        </div>
+      )}
+
+      {/* Paso 4 — Signos vitales */}
+      {paso === 4 && (
+        <div className="space-y-4">
+          <p className="text-xs text-gray-400">Todos los campos son opcionales</p>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { k: 'temperatura', label: 'Temperatura (°C)', placeholder: '37.0' },
+              { k: 'frecuenciaCardiaca', label: 'Frec. cardíaca (lpm)', placeholder: '80' },
+              { k: 'frecuenciaRespiratoria', label: 'Frec. respiratoria (rpm)', placeholder: '16' },
+              { k: 'saturacionOxigeno', label: 'Saturación O₂ (%)', placeholder: '98' },
+              { k: 'presionArterial', label: 'Presión arterial', placeholder: '120/80' },
+              { k: 'glucosa', label: 'Glucosa (mg/dL)', placeholder: '100' },
+            ].map(({ k, label, placeholder }) => (
+              <div key={k}>
+                <label className="block text-xs font-medium text-gray-400 mb-1">{label}</label>
+                <input
+                  value={signos[k as keyof SignosVitales]}
+                  onChange={e => setSigno(k as keyof SignosVitales, e.target.value)}
+                  placeholder={placeholder}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500" />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Paso 5 — Confirmar */}
+      {paso === 5 && (
+        <div className="space-y-4">
+          <div className="bg-gray-800 rounded-xl p-4 space-y-2">
+            <p className="text-xs text-gray-400 font-medium mb-2">Resumen del triage</p>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-400">Paciente</span>
+              <span className="text-white">{pacienteActual?.nombreCompleto}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-400">Inicio síntomas</span>
+              <span className="text-white capitalize">{inicio}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-400">Total síntomas</span>
+              <span className="text-white">{totalSintomas.length}</span>
+            </div>
+            {getSintomas(SINTOMAS.alarma).length > 0 && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-2 mt-2">
+                <p className="text-red-400 text-xs">⚠ {getSintomas(SINTOMAS.alarma).length} signo(s) de alarma detectado(s)</p>
+              </div>
+            )}
+            {Object.values(signos).some(v => v) && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {signos.temperatura && <span className="px-2 py-0.5 bg-gray-700 text-gray-300 text-xs rounded-lg">🌡 {signos.temperatura}°C</span>}
+                {signos.frecuenciaCardiaca && <span className="px-2 py-0.5 bg-gray-700 text-gray-300 text-xs rounded-lg">❤ {signos.frecuenciaCardiaca} lpm</span>}
+                {signos.saturacionOxigeno && <span className="px-2 py-0.5 bg-gray-700 text-gray-300 text-xs rounded-lg">O₂ {signos.saturacionOxigeno}%</span>}
+                {signos.presionArterial && <span className="px-2 py-0.5 bg-gray-700 text-gray-300 text-xs rounded-lg">PA {signos.presionArterial}</span>}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Navegación */}
+      <div className="flex gap-3 mt-8">
+        {paso > 1 && (
+          <button type="button" onClick={anterior}
+            className="flex items-center gap-2 px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-white text-sm rounded-xl transition-colors">
+            <ChevronLeft size={16} />
+            Anterior
+          </button>
+        )}
+        {paso < 5 ? (
+          <button type="button" onClick={siguiente}
+            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors ml-auto">
+            Siguiente
+            <ChevronRight size={16} />
+          </button>
+        ) : (
+          <button type="button" onClick={handleSubmit} disabled={loading}
+            className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors ml-auto">
+            {loading ? 'Registrando...' : 'Registrar triage'}
+            {!loading && <CheckCircle size={16} />}
+          </button>
+        )}
       </div>
     </div>
   )
