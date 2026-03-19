@@ -43,17 +43,17 @@ const NIVEL_CONFIG: Record<number, { label: string; color: string; bg: string; b
 export function PacienteDashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [ultimoTriage, setUltimoTriage] = useState<TriageResponse | null>(null)
+  
+  const [ultimoTriage, setTriages] = useState<TriageResponse | null>(null)
   const [loading, setLoading] = useState(true)
+
 
   useEffect(() => {
     if (!user?.userId) { setLoading(false); return }
-    triageApi.getByPaciente(user.userId)
-      .then(triages => {
-        if (triages.length > 0) setUltimoTriage(triages[0])
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
+triageApi.getByPacientePaginado(user.userId, 1, 1)
+  .then(res => setTriages(res.data[0] ?? null))
+  .catch(() => {})
+  .finally(() => setLoading(false))
   }, [user])
 
   const cfg = ultimoTriage ? NIVEL_CONFIG[ultimoTriage.nivel] : null
@@ -132,3 +132,5 @@ export function PacienteDashboard() {
     </div>
   )
 }
+
+

@@ -258,8 +258,8 @@ export function AdminHistorial() {
     setLoading(true)
 
     try {
-      const hist = await triageApi.getByPaciente(p.id)
-      setTriages(hist)
+      const hist = await triageApi.getByPacientePaginado(p.id, 1, 50)
+setTriages(hist.data)
     } finally {
       setLoading(false)
     }

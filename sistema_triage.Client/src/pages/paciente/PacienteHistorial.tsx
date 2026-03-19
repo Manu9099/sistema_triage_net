@@ -157,8 +157,8 @@ export function PacienteHistorial() {
 
  useEffect(() => {
   if (!paciente?.id) return
-  triageApi.getByPaciente(paciente.id)
-    .then(setTriages)
+  triageApi.getByPacientePaginado(paciente.id, 1, 50)
+    .then(res => setTriages(res.data))
     .finally(() => setLoading(false))
 }, [paciente])
 
