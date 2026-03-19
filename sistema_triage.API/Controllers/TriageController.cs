@@ -4,6 +4,8 @@ using sistema_triage.Application.DTOs.Triage;
 using sistema_triage.Application.Services.Interfaces;
 using System.Security.Claims;
 using sistema_triage.API.Services;
+using sistema_triage.Infrastructure.ML;
+using sistema_triage.Application.Diagnostico;
 
 namespace sistema_triage.API.Controllers;
 
@@ -19,11 +21,15 @@ public class TriageController : ControllerBase
    private readonly NotificacionService _notificaciones;
 
     private readonly DashboardService _dashboardService;
-    public TriageController(ITriageService triageService ,NotificacionService notificaciones, DashboardService dashboardService)
+
+    private readonly DiagnosticoMLService _mlService;
+    
+    public TriageController(ITriageService triageService ,NotificacionService notificaciones, DashboardService dashboardService, DiagnosticoMLService mlService)
     {
         _triageService = triageService;
          _notificaciones = notificaciones;
          _dashboardService = dashboardService;
+          _mlService = mlService;
     }
 
     
@@ -45,7 +51,30 @@ public async Task<IActionResult> Registrar([FromBody] CrearTriageDto dto)
         diagnosticoPrincipal = resultado.DiagnosticosDiferenciales?.FirstOrDefault()?.Nombre ?? "—",
         fechaRegistro = resultado.FechaRegistro
     };
+// Enriquecer diagnósticos con ML si está disponible
+if (_mlService.ModeloDisponible && resultado.DiagnosticosDiferenciales?.Any() == true)
+{
+    var input = new TriageDiagnosticoInput
+    {
+        Edad = resultado.Edad,
+        TieneSignosAlarma = dto.SignosAlarma.Any() ? 1f : 0f,
+        TieneSintomasResp = dto.SintomasResp.Any() ? 1f : 0f,
+        TieneSintomasCardio = dto.SintomasCardio.Any() ? 1f : 0f,
+        TieneSintomasDigest = dto.SintomasDigest.Any() ? 1f : 0f,
+        TieneSintomasGeneral = dto.SintomasGeneral.Any() ? 1f : 0f,
+        Temperatura = (float)(dto.Temperatura ?? 37m),
+        FrecuenciaCardiaca = dto.FrecuenciaCardiaca ?? 80,
+        SaturacionOxigeno = dto.SaturacionOxigeno ?? 98,
+        NivelTriage = (float)resultado.Nivel,
+        CantidadSintomas = dto.SignosAlarma.Count + dto.SintomasResp.Count +
+                           dto.SintomasCardio.Count + dto.SintomasDigest.Count +
+                           dto.SintomasGeneral.Count
+    };
 
+    var prediccionesML = _mlService.Predecir(input);
+    resultado.DiagnosticosDiferenciales = MotorDiagnostico.CombinarConML(
+        resultado.DiagnosticosDiferenciales, prediccionesML);
+}
     await _notificaciones.NotificarNuevoTriage(notif);
 
     if (resultado.Nivel == Domain.Enums.NivelTriage.Emergencia ||

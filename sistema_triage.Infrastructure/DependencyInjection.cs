@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using sistema_triage.Domain.Interfaces;
 using sistema_triage.Infrastructure.Data;
+using sistema_triage.Infrastructure.ML;
 using sistema_triage.Infrastructure.Repositories;
 using sistema_triage.Infrastructure.Services;
 
@@ -11,6 +12,7 @@ namespace sistema_triage.Infrastructure;
 
 public static class DependencyInjection
 {
+    
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
         IConfiguration configuration)
@@ -26,6 +28,9 @@ public static class DependencyInjection
         services.AddScoped<ISlotRepository, SlotRepository>();
         services.AddScoped<ICitaRepository, CitaRepository>();
         services.AddScoped<ISeguimientoRepository, SeguimientoRepository>();
+
+        services.AddSingleton<DiagnosticoMLService>();
+        
 
         // Azure Blob — mock en desarrollo, real cuando se configure Azure
         var blobConnectionString = configuration["Azure:BlobConnectionString"];

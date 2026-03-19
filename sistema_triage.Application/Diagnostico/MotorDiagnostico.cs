@@ -17,6 +17,8 @@ public static class MotorDiagnostico
             .Concat(EnfermedadesMetabolicas.Obtener())
             .ToList();
 
+
+
     public static List<ResultadoDiagnostico> Analizar(List<string> sintomas, int edad)
     {
         var sintomasNormalizados = sintomas
@@ -78,6 +80,25 @@ public static class MotorDiagnostico
             .ToList();
     }
 
+private static bool EsSignoAlarma(string s) =>
+    new[] { "dificultad respiratoria", "dolor pecho", "pérdida conciencia", "convulsiones" }
+    .Any(x => s.ToLower().Contains(x));
+
+private static bool EsSintomaResp(string s) =>
+    new[] { "tos", "disnea", "expectoración", "sibilancias", "hemoptisis" }
+    .Any(x => s.ToLower().Contains(x));
+
+private static bool EsSintomaCardio(string s) =>
+    new[] { "palpitaciones", "dolor precordial", "edema", "síncope" }
+    .Any(x => s.ToLower().Contains(x));
+
+private static bool EsSintomaDigest(string s) =>
+    new[] { "náuseas", "vómitos", "diarrea", "dolor abdominal", "ictericia" }
+    .Any(x => s.ToLower().Contains(x));
+
+private static bool EsSintomaGeneral(string s) =>
+    new[] { "fiebre", "cefalea", "malestar", "fatiga", "pérdida peso" }
+    .Any(x => s.ToLower().Contains(x));
     private static double ObtenerAjusteEdad(string codigo, int edad) => codigo switch
     {
         "CARD001" or "CARD003" or "CARD004" when edad >= 60 => 0.10,
@@ -87,4 +108,46 @@ public static class MotorDiagnostico
         "NEUR002" when edad >= 55 => 0.10,
         _ => 0
     };
+
+public static List<ResultadoDiagnostico> CombinarConML(
+    List<ResultadoDiagnostico> resultadosReglas,
+    List<(string Diagnostico, float Probabilidad)> prediccionesML)
+{
+    if (!prediccionesML.Any())
+        return resultadosReglas;
+
+    var combinados = new Dictionary<string, float>();
+
+    foreach (var r in resultadosReglas)
+        combinados[r.Nombre] = (float)r.Probabilidad * 0.6f;
+
+    foreach (var (diagnostico, prob) in prediccionesML)
+    {
+        if (combinados.ContainsKey(diagnostico))
+            combinados[diagnostico] += prob * 100f * 0.4f;
+        else
+            combinados[diagnostico] = prob * 100f * 0.4f;
+    }
+
+    return combinados
+        .OrderByDescending(x => x.Value)
+        .Take(5)
+        .Select(x => {
+            var original = resultadosReglas.FirstOrDefault(r => r.Nombre == x.Key);
+            return new ResultadoDiagnostico
+            {
+                Codigo = original?.Codigo ?? x.Key.ToLower().Replace(" ", "_"),
+                Nombre = x.Key,
+                Probabilidad = Math.Round(x.Value, 1),
+                Grupo = original?.Grupo ?? "General",
+                Recomendacion = original?.Recomendacion ?? "Evaluación médica recomendada"
+            };
+        })
+        .ToList();
 }
+
+}
+
+
+
+
