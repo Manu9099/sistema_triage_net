@@ -3,25 +3,25 @@ using Microsoft.ML.Data;
 using sistema_triage.Domain.Interfaces;
 using sistema_triage.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace sistema_triage.Infrastructure.ML;
 
 public class DiagnosticoMLService
 {
-    private readonly MLContext _mlContext;
-    private readonly AppDbContext _context;
+   private readonly MLContext _mlContext;
+    private readonly IServiceProvider _serviceProvider;
     private ITransformer? _modelo;
     private PredictionEngine<TriageDiagnosticoInput, TriageDiagnosticoPrediction>? _engine;
     private readonly string _modelPath;
     private bool _modeloEntrenado = false;
     private static readonly object _lock = new();
 
-    public DiagnosticoMLService(AppDbContext context)
+    public DiagnosticoMLService(IServiceProvider serviceProvider)
     {
         _mlContext = new MLContext(seed: 42);
-        _context = context;
+        _serviceProvider = serviceProvider;
         _modelPath = Path.Combine(AppContext.BaseDirectory, "diagnostico_model.zip");
-        _ = Task.Run(async () => await InicializarAsync());
     }
 
     public bool ModeloDisponible => _modeloEntrenado;
@@ -42,11 +42,13 @@ public class DiagnosticoMLService
 
     public async Task EntrenarAsync()
     {
-        var datos = await ObtenerDatosEntrenamientoAsync();
+        using var scope = _serviceProvider.CreateScope();
+        var context = scope.ServiceProvider
+            .GetRequiredService<sistema_triage.Infrastructure.Data.AppDbContext>();
+
+        var datos = await ObtenerDatosEntrenamientoAsync(context);
         if (datos.Count < 10)
-        {
             datos.AddRange(GenerarDatosSinteticos());
-        }
 
         var dataView = _mlContext.Data.LoadFromEnumerable(datos);
 
@@ -73,12 +75,14 @@ public class DiagnosticoMLService
         {
             _modelo = pipeline.Fit(dataView);
             _mlContext.Model.Save(_modelo, dataView.Schema, _modelPath);
-            _engine = _mlContext.Model.CreatePredictionEngine<TriageDiagnosticoInput, TriageDiagnosticoPrediction>(_modelo);
+            _engine = _mlContext.Model
+                .CreatePredictionEngine<TriageDiagnosticoInput, TriageDiagnosticoPrediction>(_modelo);
             _modeloEntrenado = true;
         }
     }
 
-    public List<(string Diagnostico, float Probabilidad)> Predecir(TriageDiagnosticoInput input)
+
+  public List<(string Diagnostico, float Probabilidad)> Predecir(TriageDiagnosticoInput input)
     {
         if (!_modeloEntrenado || _engine == null)
             return new List<(string, float)>();
@@ -89,7 +93,6 @@ public class DiagnosticoMLService
             if (prediccion.Score == null || prediccion.Score.Length == 0)
                 return new List<(string, float)>();
 
-            // Obtener top 3 diagnósticos con probabilidad
             var diagnosticos = ObtenerEtiquetas();
             return diagnosticos
                 .Zip(prediccion.Score, (d, s) => (d, s))
@@ -101,6 +104,7 @@ public class DiagnosticoMLService
         }
     }
 
+
     private void CargarModelo()
     {
         lock (_lock)
@@ -111,9 +115,10 @@ public class DiagnosticoMLService
         }
     }
 
-    private async Task<List<TriageDiagnosticoInput>> ObtenerDatosEntrenamientoAsync()
+    private static async Task<List<TriageDiagnosticoInput>> ObtenerDatosEntrenamientoAsync(
+        sistema_triage.Infrastructure.Data.AppDbContext context)
     {
-        return await _context.Seguimientos
+        return await context.Seguimientos
             .Include(s => s.Triage)
             .Where(s => !string.IsNullOrEmpty(s.DiagnosticoConfirmado))
             .Select(s => new TriageDiagnosticoInput
@@ -134,7 +139,7 @@ public class DiagnosticoMLService
             .ToListAsync();
     }
 
-    private static List<string> ObtenerEtiquetas() =>
+   private static List<string> ObtenerEtiquetas() =>
     [
         "Gripe", "Neumonía", "Asma", "Bronquitis", "EPOC",
         "Hipertensión", "Arritmia", "SCA", "Insuficiencia Cardíaca", "TEP",
@@ -144,13 +149,12 @@ public class DiagnosticoMLService
         "Hipoglucemia", "Cetoacidosis", "Hipotiroidismo", "Hipertiroidismo", "ISR"
     ];
 
-    private static List<TriageDiagnosticoInput> GenerarDatosSinteticos()
+  private static List<TriageDiagnosticoInput> GenerarDatosSinteticos()
     {
         var random = new Random(42);
         var datos = new List<TriageDiagnosticoInput>();
         var diagnosticos = ObtenerEtiquetas();
 
-        // Generar 20 registros por diagnóstico
         foreach (var diagnostico in diagnosticos)
         {
             for (int i = 0; i < 20; i++)

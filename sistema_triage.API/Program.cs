@@ -93,6 +93,7 @@ try
     });
   
     builder.Services.AddScoped<DashboardService>(); 
+    builder.Services.AddHostedService<MLReentrenamientoService>();
     Log.Information("Construyendo app...");
     var app = builder.Build();
     Log.Information("App construida OK");
