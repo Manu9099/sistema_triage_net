@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using Serilog;
 using sistema_triage.API.Middleware;
+using sistema_triage.API.Services;
 using sistema_triage.Application;
 using sistema_triage.Domain.Entities;
 using sistema_triage.Infrastructure;
@@ -90,7 +91,8 @@ try
             return Task.CompletedTask;
         });
     });
-
+  
+    builder.Services.AddScoped<DashboardService>(); 
     Log.Information("Construyendo app...");
     var app = builder.Build();
     Log.Information("App construida OK");

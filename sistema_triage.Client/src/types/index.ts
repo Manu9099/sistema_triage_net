@@ -201,3 +201,23 @@ export interface SeguimientoResponse {
   nivelTriageOriginal: number
   fechaTriage: string
 }
+export interface DashboardStats {
+  totalPacientesHoy: number
+  totalTriagesHoy: number
+  emergencias: number
+  urgentes: number
+  semiUrgentes: number
+  noUrgentes: number
+  tiempoPromedioEsperaMinutos: number
+  ultimaActualizacion: string
+}
+
+export interface PacienteEspera {
+  triageId: string
+  nombrePaciente: string
+  nivel: number
+  nivelDescripcion: string
+  horaRegistro: string
+  minutosEspera: number
+  sintomas: string
+}

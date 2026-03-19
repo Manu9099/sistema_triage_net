@@ -7,17 +7,21 @@ using sistema_triage.Domain.Interfaces;
 using sistema_triage.Application.Diagnostico;
 using sistema_triage.Domain.Models;
 
+
+
 namespace sistema_triage.Application.Services;
 
 public class TriageService : ITriageService
 {
     private readonly ITriageRepository _repo;
     private readonly IPacienteRepository _pacienteRepo;
+    private readonly IServiceProvider _serviceProvider;
 
     public TriageService(ITriageRepository repo, IPacienteRepository pacienteRepo)
     {
         _repo = repo;
         _pacienteRepo = pacienteRepo;
+   
     }
 
 public async Task<TriageResponseDto> RegistrarAsync(CrearTriageDto dto, string usuarioId)
@@ -66,9 +70,11 @@ public async Task<TriageResponseDto> RegistrarAsync(CrearTriageDto dto, string u
 
     var response = MapToDto(triage, paciente);
     response.DiagnosticosDiferenciales = diagnosticos;
+
+ 
+
     return response;
 }
-
 public async Task<TriageResponseDto?> ObtenerPorIdAsync(Guid id)
 {
     var t = await _repo.GetWithPacienteAsync(id);
