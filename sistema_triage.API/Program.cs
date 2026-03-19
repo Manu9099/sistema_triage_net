@@ -70,7 +70,10 @@ try
     {
         options.AddPolicy("Frontend", policy =>
             policy.WithOrigins(
-                    builder.Configuration["Cors:Origins"]?.Split(',') ?? ["http://localhost:5173"]
+                    builder.Configuration["Cors:Origins"]?.Split(',') ??
+                     ["http://localhost:5173"  ,
+                    "https://sistema-triage-api.onrender.com",
+                    "https://sistema-triage-client.onrender.com"]
                 )
                 .AllowAnyHeader()
                 .AllowAnyMethod()
