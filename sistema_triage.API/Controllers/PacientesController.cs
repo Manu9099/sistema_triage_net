@@ -20,10 +20,7 @@ public class PacientesController : ControllerBase
         _crearValidator = crearValidator;
     }
 
-    [HttpGet]
-    [Authorize(Roles = "Admin,Staff")]
-    public async Task<IActionResult> GetTodos() =>
-        Ok(new { exitoso = true, data = await _pacienteService.ObtenerTodosAsync() });
+
 
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)

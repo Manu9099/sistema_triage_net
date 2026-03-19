@@ -2,6 +2,7 @@ import api from './client'
 import type { Paciente, CrearPacienteDto, ApiResponse, ActualizarPacienteDto, PaginatedResponse } from '../types'
 
 export const pacientesApi = {
+  
 getAll: async (page = 1, pageSize = 10): Promise<PaginatedResponse<Paciente>> => {
   const res = await api.get<ApiResponse<PaginatedResponse<Paciente>>>(
     `/pacientes?page=${page}&pageSize=${pageSize}`
