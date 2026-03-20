@@ -36,6 +36,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             e.Property(t => t.InicioSintomas).IsRequired().HasMaxLength(20);
             e.Property(t => t.RecomendacionClinica).HasMaxLength(500);
             e.Property(t => t.TiempoAtencion).HasMaxLength(50);
+            e.Property(t => t.Temperatura).HasColumnType("decimal(5,2)");
+            e.Property(t => t.Glucosa).HasColumnType("decimal(6,2)");
             e.HasOne(t => t.Paciente)
              .WithMany(p => p.Triages)
              .HasForeignKey(t => t.PacienteId)

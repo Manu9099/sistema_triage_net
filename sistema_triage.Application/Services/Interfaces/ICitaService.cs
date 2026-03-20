@@ -12,4 +12,5 @@ public interface ICitaService
     Task<IEnumerable<CitaResponseDto>> ObtenerCitasPorFechaAsync(DateTime desde, DateTime hasta);
     Task<IEnumerable<CitaResponseDto>> ObtenerCitasPendientesAsync();
     Task EliminarSlotAsync(Guid slotId);
+    Task<CitaResponseDto> CancelarPorPacienteAsync(Guid citaId, Guid pacienteId, string? motivo);
 }

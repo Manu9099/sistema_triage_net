@@ -32,5 +32,9 @@ export const citasApi = {
   getMisCitas: async (): Promise<Cita[]> => {
     const res = await api.get<ApiResponse<Cita[]>>('/citas/mis-citas')
     return res.data.data
-  }
+  },
+  cancelarPorPaciente: async (citaId: string, motivo?: string): Promise<Cita> => {
+  const res = await api.delete<ApiResponse<Cita>>(`/citas/${citaId}/cancelar`, { data: motivo })
+  return res.data.data
+},
 }

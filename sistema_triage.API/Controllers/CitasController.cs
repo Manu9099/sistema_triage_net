@@ -91,4 +91,17 @@ public class CitasController : ControllerBase
         var citas = await _citaService.ObtenerCitasPorPacienteAsync(paciente.Id);
         return Ok(new { exitoso = true, data = citas });
     }
+    [HttpDelete("{id:guid}/cancelar")]
+    [Authorize(Roles = "Paciente")]
+    public async Task<IActionResult> CancelarPorPaciente(Guid id, [FromBody] string? motivo)
+    {
+    var email = User.FindFirst(ClaimTypes.Email)?.Value!;
+    var pacientes = await _pacienteRepo.FindAsync(p => p.Email == email && p.Activo);
+    var paciente = pacientes.FirstOrDefault()
+        ?? throw new KeyNotFoundException("Paciente no encontrado");
+
+    var cita = await _citaService.CancelarPorPacienteAsync(id, paciente.Id, motivo);
+    return Ok(new { exitoso = true, data = cita });
+    }
+
 }

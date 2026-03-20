@@ -127,6 +127,20 @@ export function PacienteCitas() {
   const [citas, setCitas] = useState<Cita[]>([])
   const [loading, setLoading] = useState(true)
   const [modalAbierto, setModalAbierto] = useState(false)
+  const horasHastaCita = (fechaHoraInicio: string) =>
+  (new Date(fechaHoraInicio).getTime() - Date.now()) / 3600000
+
+const cancelarCita = async (citaId: string) => {
+  if (!confirm('¿Seguro que quieres cancelar esta cita?')) return
+  try {
+    await citasApi.cancelarPorPaciente(citaId)
+    setCitas(prev => prev.map(c =>
+      c.id === citaId ? { ...c, estado: 2, estadoDescripcion: 'Cancelada' } : c
+    ))
+  } catch (err: any) {
+    alert(err?.response?.data?.mensaje ?? 'Error al cancelar la cita')
+  }
+}
 
   useEffect(() => {
     citasApi.getMisCitas()
@@ -181,6 +195,18 @@ export function PacienteCitas() {
               <div className="space-y-3">
                 {proximas.map(c => {
                   const cfg = ESTADO_CONFIG[c.estado]
+                    // En el map de proximas citas, agrega este botón
+{(c.estado === 0 || c.estado === 1) && horasHastaCita(c.fechaHoraInicio) >= 24 && (
+  <button onClick={() => cancelarCita(c.id)} type="button"
+    className={`text-xs px-3 py-1.5 rounded-xl border transition-colors ${
+      c.estado === 0
+        ? 'border-red-200 text-red-500 hover:bg-red-50'
+        : 'border-orange-200 text-orange-500 hover:bg-orange-50'
+    }`}>
+    Cancelar
+  </button>
+)}
+
                   return (
                     <div key={c.id} className={`border-2 rounded-2xl p-5 ${cfg.bg} ${cfg.border}`}>
                       <div className="flex items-start justify-between">

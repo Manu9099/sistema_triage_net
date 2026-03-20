@@ -165,4 +165,34 @@ public class CitaService : ICitaService
         FechaSolicitud = c.FechaSolicitud,
         FechaConfirmacion = c.FechaConfirmacion
     };
+
+public async Task<CitaResponseDto> CancelarPorPacienteAsync(Guid citaId, Guid pacienteId, string? motivo)
+{
+    var cita = await _citaRepo.GetWithDetallesAsync(citaId)
+        ?? throw new KeyNotFoundException("Cita no encontrada");
+
+    if (cita.PacienteId != pacienteId)
+        throw new UnauthorizedAccessException("No puedes cancelar una cita que no es tuya");
+
+    if (cita.Estado == EstadoCita.Cancelada)
+        throw new InvalidOperationException("La cita ya está cancelada");
+
+    if (cita.Estado == EstadoCita.Completada)
+        throw new InvalidOperationException("No puedes cancelar una cita completada");
+
+    // Validar 24h de anticipación
+    var horasRestantes = (cita.Slot.FechaHoraInicio - DateTime.UtcNow).TotalHours;
+    if (horasRestantes < 24)
+        throw new InvalidOperationException("Solo puedes cancelar con al menos 24 horas de anticipación");
+
+    cita.Estado = EstadoCita.Cancelada;
+    cita.MotivoRechazo = motivo ?? "Cancelado por el paciente";
+    cita.Slot.Disponible = true;
+
+    _citaRepo.Update(cita);
+    await _citaRepo.SaveChangesAsync();
+
+    return MapCitaToDto(cita);
+}
+
 }
