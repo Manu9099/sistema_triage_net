@@ -100,17 +100,35 @@ function ModalGestionarCita({ cita, onClose, onGestionada }: {
   const [motivo, setMotivo] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-
+  const [slotsDisponibles, setSlotsDisponibles] = useState<SlotDisponibilidad[]>([])
+  const [nuevoSlotId, setNuevoSlotId] = useState('')
+  const [cargandoSlots, setCargandoSlots] = useState(false)
+ 
+  useEffect(() => {
+  if (accion === 'reprogramar') {
+    setCargandoSlots(true)
+    const desde = new Date().toISOString()
+    const hasta = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    citasApi.getSlotsDisponibles(desde, hasta)
+      .then(setSlotsDisponibles)
+      .finally(() => setCargandoSlots(false))
+  }
+}, [accion])
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!accion) { setError('Selecciona una acción'); return }
     setLoading(true)
     setError('')
+    if (accion === 'reprogramar' && !nuevoSlotId) {
+  setError('Debes seleccionar un nuevo horario')
+  return
+}
     try {
       const dto: GestionarCitaDto = {
         accion,
         notasStaff: notas || undefined,
         motivoRechazo: motivo || undefined,
+        nuevoSlotId: accion === 'reprogramar' ? nuevoSlotId : undefined,
       }
       const actualizada = await citasApi.gestionarCita(cita.id, dto)
       onGestionada(actualizada)
@@ -189,8 +207,36 @@ function ModalGestionarCita({ cita, onClose, onGestionada }: {
                   placeholder="Indicaciones, observaciones..."
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 resize-none" />
               </div>
-            )}
-
+              )}
+{accion === 'reprogramar' && (
+  <div>
+    <label className="block text-xs font-medium text-gray-400 mb-1">Nuevo horario *</label>
+    {cargandoSlots ? (
+      <div className="flex justify-center py-3">
+        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500" />
+      </div>
+    ) : slotsDisponibles.length === 0 ? (
+      <p className="text-xs text-gray-500">No hay slots disponibles</p>
+    ) : (
+      <select value={nuevoSlotId} onChange={e => setNuevoSlotId(e.target.value)}
+        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500">
+        <option value="">Seleccionar nuevo horario...</option>
+        {slotsDisponibles.map(s => (
+          <option key={s.id} value={s.id}>
+            {s.fecha} — {s.hora}
+          </option>
+        ))}
+      </select>
+   
+   )}
+    <div>
+      <label className="block text-xs font-medium text-gray-400 mb-1 mt-3">Notas</label>
+      <textarea value={notas} onChange={e => setNotas(e.target.value)} rows={2}
+        placeholder="Motivo de la reprogramación..."
+        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 resize-none" />
+    </div>
+  </div>
+)}
             <div className="flex gap-3 pt-2">
               <button type="button" onClick={onClose}
                 className="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-white text-sm rounded-lg">Cancelar</button>

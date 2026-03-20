@@ -5,7 +5,7 @@ import { exportarTriagePDF } from '../../utils/exportarPDF'
 import type { TriageResponse } from '../../types'
 import { Pagination } from '../../components/ui/Pagination'
 import { ModalSeguimiento } from '../../components/ui/ModalSeguimiento'
-//import { toLocalISOString, hoyLocal } from '../../utils/fechas'
+import { toLocalISOString, hoyLocal } from '../../utils/fechas'
 
 const NIVEL_CONFIG: Record<number, { label: string; color: string; dot: string }> = {
   1: { label: 'Emergencia', color: 'text-red-400', dot: 'bg-red-500' },
@@ -33,7 +33,7 @@ const EMPTY_STATS: ReporteStats = {
 const PAGE_SIZE = 10
 
 export function AdminReportes() {
-  const hoy = new Date().toLocaleDateString('en-CA')
+  const hoy = hoyLocal()
 
   const [desde, setDesde] = useState(hoy)
   const [hasta, setHasta] = useState(hoy)
@@ -51,9 +51,6 @@ export function AdminReportes() {
   const [totalItems, setTotalItems] = useState(0)
 
   const [triageSeguimiento, setTriageSeguimiento] = useState<TriageResponse | null>(null)
-
-  const buildFechaInicio = (date: string) => `${date}T00:00:00`
-  const buildFechaFin = (date: string) => `${date}T23:59:59`
 
   const limpiarResultados = () => {
     setTriages([])
@@ -89,8 +86,8 @@ export function AdminReportes() {
     setLoading(true)
 
     try {
-      const fechaDesde = buildFechaInicio(desde)
-      const fechaHasta = buildFechaFin(hasta)
+      const fechaDesde = toLocalISOString(desde, false)
+      const fechaHasta = toLocalISOString(hasta, true)
 
       const [res, statsData] = await Promise.all([
         triageApi.getReportePaginado(fechaDesde, fechaHasta, p, PAGE_SIZE),
@@ -135,8 +132,8 @@ export function AdminReportes() {
     try {
       setExportando(true)
 
-      const fechaDesde = buildFechaInicio(desde)
-      const fechaHasta = buildFechaFin(hasta)
+      const fechaDesde = toLocalISOString(desde, false)
+      const fechaHasta = toLocalISOString(hasta, true)
 
       const primeraPagina = await triageApi.getReportePaginado(fechaDesde, fechaHasta, 1, PAGE_SIZE)
 

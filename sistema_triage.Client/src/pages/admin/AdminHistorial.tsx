@@ -5,6 +5,7 @@ import { triageApi } from '../../api/triage'
 import type { Paciente, TriageResponse } from '../../types'
 import { exportarTriagePDF } from '../../utils/exportarPDF'
 import { ModalSeguimiento } from '../../components/ui/ModalSeguimiento'
+import { Pagination } from '../../components/ui/Pagination'
 
 const NIVEL_CONFIG: Record<number, { label: string; color: string; bg: string; dot: string }> = {
   1: { label: 'Emergencia', color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20', dot: 'bg-red-500' },
@@ -185,10 +186,7 @@ function TriageCard({
               <p className="text-xs font-medium text-gray-400 mb-2">Diagnósticos diferenciales</p>
               <div className="space-y-2">
                 {triage.diagnosticosDiferenciales.map((d, index) => (
-                  <div
-                    key={`${d.codigo}-${index}`}
-                    className="bg-gray-800 rounded-lg p-3"
-                  >
+                  <div key={`${d.codigo}-${index}`} className="bg-gray-800 rounded-lg p-3">
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-xs font-medium text-white">{d.nombre}</p>
                       <span className="text-xs font-semibold text-blue-400">{d.probabilidad}%</span>
@@ -234,6 +232,11 @@ export function AdminHistorial() {
   const [loadingPacientes, setLoadingPacientes] = useState(true)
   const [triageSeguimiento, setTriageSeguimiento] = useState<TriageResponse | null>(null)
 
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const PAGE_SIZE = 10
+
   useEffect(() => {
     pacientesApi
       .getAllList()
@@ -248,21 +251,33 @@ export function AdminHistorial() {
       return
     }
 
-    const res = await (await pacientesApi.buscar(termino)).data
-   setPacientes(res)
+    const response = await pacientesApi.buscar(termino)
+    setPacientes(response.data)
+  }
+
+  const cargarTriages = async (id: string, p: number) => {
+    setLoading(true)
+    try {
+      const hist = await triageApi.getByPacientePaginado(id, p, PAGE_SIZE)
+      setTriages(hist.data)
+      setPage(hist.page)
+      setTotalPages(hist.totalPages)
+      setTotalItems(hist.totalItems)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const seleccionarPaciente = async (p: Paciente) => {
     setPacienteId(p.id)
     setPacienteActual(p)
-    setLoading(true)
+    setPage(1)
+    await cargarTriages(p.id, 1)
+  }
 
-    try {
-      const hist = await triageApi.getByPacientePaginado(p.id, 1, 50)
-setTriages(hist.data)
-    } finally {
-      setLoading(false)
-    }
+  const onPageChange = async (p: number) => {
+    if (!pacienteActual) return
+    await cargarTriages(pacienteActual.id, p)
   }
 
   const nivelMasCritico =
@@ -351,7 +366,7 @@ setTriages(hist.data)
                   </div>
 
                   <div className="text-right flex-shrink-0">
-                    <p className="text-2xl font-semibold text-white">{triages.length}</p>
+                    <p className="text-2xl font-semibold text-white">{totalItems}</p>
                     <p className="text-xs text-gray-400">triages totales</p>
                   </div>
                 </div>
@@ -400,15 +415,27 @@ setTriages(hist.data)
                   <p className="text-sm">Este paciente no tiene triages registrados</p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {triages.map(t => (
-                    <TriageCard
-                      key={t.id}
-                      triage={t}
-                      onSeguimiento={setTriageSeguimiento}
+                <>
+                  <div className="space-y-3">
+                    {triages.map(t => (
+                      <TriageCard
+                        key={t.id}
+                        triage={t}
+                        onSeguimiento={setTriageSeguimiento}
+                      />
+                    ))}
+                  </div>
+
+                  <div className="mt-4">
+                    <Pagination
+                      page={page}
+                      totalPages={totalPages}
+                      totalItems={totalItems}
+                      pageSize={PAGE_SIZE}
+                      onPageChange={onPageChange}
                     />
-                  ))}
-                </div>
+                  </div>
+                </>
               )}
             </>
           )}
