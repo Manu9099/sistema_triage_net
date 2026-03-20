@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Calendar, Clock, X } from 'lucide-react'
 import { citasApi } from '../../api/citas'
 import type { Cita, SlotDisponibilidad, SolicitarCitaDto } from '../../types'
-import { toLocalISOString, hoyLocal } from '../../utils/fechas'
+import {  hoyLocal } from '../../utils/fechas'
 // Necesita importar Plus
 import { Plus } from 'lucide-react'
 
