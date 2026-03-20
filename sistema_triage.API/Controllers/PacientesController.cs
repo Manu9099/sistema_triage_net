@@ -10,7 +10,7 @@ namespace sistema_triage.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin,Staff")]
+[Authorize]
 public class PacientesController : ControllerBase
 {
     private readonly IPacienteService _pacienteService;
@@ -111,6 +111,7 @@ public async Task<IActionResult> GetMiPerfil()
 }
 
 [HttpGet]
+[Authorize]
 public async Task<IActionResult> GetAll(
     [FromQuery] string? busqueda,
     [FromQuery] int page = 1,
