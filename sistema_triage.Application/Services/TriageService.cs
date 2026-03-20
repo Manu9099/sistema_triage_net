@@ -294,4 +294,18 @@ public async Task<PaginatedResult<TriageResponseDto>> ObtenerPorPacientePaginado
     };
 }
 
+public async Task<object> ObtenerStatsRangoAsync(DateTime desde, DateTime hasta)
+{
+    var todos = await _repo.GetByFechaAsync(desde, hasta);
+    var lista = todos.ToList();
+    return new
+    {
+        total = lista.Count,
+        emergencias = lista.Count(t => (int)t.Nivel == 1),
+        urgentes = lista.Count(t => (int)t.Nivel == 2),
+        semiUrgentes = lista.Count(t => (int)t.Nivel == 3),
+        noUrgentes = lista.Count(t => (int)t.Nivel == 4),
+    };
+}
+
 }

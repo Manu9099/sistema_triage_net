@@ -6,6 +6,8 @@ using System.Security.Claims;
 using sistema_triage.API.Services;
 using sistema_triage.Infrastructure.ML;
 using sistema_triage.Application.Diagnostico;
+using sistema_triage.Application.DTOs.Paciente;
+using sistema_triage.Domain.Interfaces;
 
 namespace sistema_triage.API.Controllers;
 
@@ -17,20 +19,25 @@ namespace sistema_triage.API.Controllers;
 [Authorize]
 public class TriageController : ControllerBase
 {
-    private readonly ITriageService _triageService;
-   private readonly NotificacionService _notificaciones;
+private readonly ITriageService _triageService;
+private readonly NotificacionService _notificaciones;
+private readonly DashboardService _dashboardService;
+private readonly DiagnosticoMLService _mlService;
+private readonly IPacienteRepository _pacienteRepo;
 
-    private readonly DashboardService _dashboardService;
-
-    private readonly DiagnosticoMLService _mlService;
-    
-    public TriageController(ITriageService triageService ,NotificacionService notificaciones, DashboardService dashboardService, DiagnosticoMLService mlService)
-    {
-        _triageService = triageService;
-         _notificaciones = notificaciones;
-         _dashboardService = dashboardService;
-          _mlService = mlService;
-    }
+public TriageController(
+    ITriageService triageService,
+    NotificacionService notificaciones,
+    DashboardService dashboardService,
+    DiagnosticoMLService mlService,
+    IPacienteRepository pacienteRepo)
+{
+    _triageService = triageService;
+    _notificaciones = notificaciones;
+    _dashboardService = dashboardService;
+    _mlService = mlService;
+    _pacienteRepo = pacienteRepo;
+}
 
     
 
@@ -93,6 +100,7 @@ if (_mlService.ModeloDisponible && resultado.DiagnosticosDiferenciales?.Any() ==
 }
 
     [HttpGet("{id:guid}")]
+    [Authorize]
     public async Task<IActionResult> GetById(Guid id)
     {
         var triage = await _triageService.ObtenerPorIdAsync(id);
@@ -113,6 +121,7 @@ public async Task<IActionResult> GetReporte(
 }
 
 [HttpGet("paciente/{pacienteId:guid}")]
+[Authorize]
 public async Task<IActionResult> GetByPaciente(
     Guid pacienteId,
     [FromQuery] int page = 1,
@@ -121,4 +130,15 @@ public async Task<IActionResult> GetByPaciente(
     var result = await _triageService.ObtenerPorPacientePaginadoAsync(pacienteId, page, pageSize);
     return Ok(new { exitoso = true, data = result });
 }
+
+[HttpGet("stats-rango")]
+[Authorize(Roles = "Admin,Staff")]
+public async Task<IActionResult> GetStatsRango(
+    [FromQuery] DateTime desde,
+    [FromQuery] DateTime hasta)
+{
+    var stats = await _triageService.ObtenerStatsRangoAsync(desde, hasta);
+    return Ok(new { exitoso = true, data = stats });
+}
+
 }

@@ -57,6 +57,9 @@ getAllList: async (): Promise<Paciente[]> => {
   )
   return res.data.data.data
 },
-
+actualizarMiPerfil: async (dto: ActualizarPacienteDto): Promise<Paciente> => {
+  const res = await api.put<ApiResponse<Paciente>>('/pacientes/mi-perfil', dto)
+  return res.data.data
+},
 
 }

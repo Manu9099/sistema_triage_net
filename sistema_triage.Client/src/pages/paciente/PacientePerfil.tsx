@@ -108,7 +108,7 @@ export function PacientePerfil() {
     setGuardando(true)
 
     try {
-      const actualizado = await pacientesApi.actualizar(paciente.id, {
+      const actualizado = await pacientesApi.actualizarMiPerfil( {
         nombres: paciente.nombres,
         apellidos: paciente.apellidos,
         fechaNacimiento: paciente.fechaNacimiento,

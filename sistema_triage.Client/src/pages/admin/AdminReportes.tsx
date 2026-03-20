@@ -5,6 +5,7 @@ import { exportarTriagePDF } from '../../utils/exportarPDF'
 import type { TriageResponse } from '../../types'
 import { Pagination } from '../../components/ui/Pagination'
 import { ModalSeguimiento } from '../../components/ui/ModalSeguimiento'
+//import { toLocalISOString, hoyLocal } from '../../utils/fechas'
 
 const NIVEL_CONFIG: Record<number, { label: string; color: string; dot: string }> = {
   1: { label: 'Emergencia', color: 'text-red-400', dot: 'bg-red-500' },
@@ -13,13 +14,34 @@ const NIVEL_CONFIG: Record<number, { label: string; color: string; dot: string }
   4: { label: 'No urgente', color: 'text-green-400', dot: 'bg-green-500' },
 }
 
+type ReporteStats = {
+  total: number
+  emergencias: number
+  urgentes: number
+  semiUrgentes: number
+  noUrgentes: number
+}
+
+const EMPTY_STATS: ReporteStats = {
+  total: 0,
+  emergencias: 0,
+  urgentes: 0,
+  semiUrgentes: 0,
+  noUrgentes: 0,
+}
+
+const PAGE_SIZE = 10
+
 export function AdminReportes() {
-  const hoy = new Date().toISOString().slice(0, 10)
+  const hoy = new Date().toLocaleDateString('en-CA')
 
   const [desde, setDesde] = useState(hoy)
   const [hasta, setHasta] = useState(hoy)
   const [triages, setTriages] = useState<TriageResponse[]>([])
+  const [stats, setStats] = useState<ReporteStats>(EMPTY_STATS)
+
   const [loading, setLoading] = useState(false)
+  const [exportando, setExportando] = useState(false)
   const [buscado, setBuscado] = useState(false)
   const [error, setError] = useState('')
   const [vistaTabla, setVistaTabla] = useState(true)
@@ -29,46 +51,67 @@ export function AdminReportes() {
   const [totalItems, setTotalItems] = useState(0)
 
   const [triageSeguimiento, setTriageSeguimiento] = useState<TriageResponse | null>(null)
-  const PAGE_SIZE = 10
 
-  const cargarReporte = async (p = 1) => {
-    setError('')
+  const buildFechaInicio = (date: string) => `${date}T00:00:00`
+  const buildFechaFin = (date: string) => `${date}T23:59:59`
 
+  const limpiarResultados = () => {
+    setTriages([])
+    setStats(EMPTY_STATS)
+    setPage(1)
+    setTotalPages(1)
+    setTotalItems(0)
+  }
+
+  const validarFechas = () => {
     if (!desde || !hasta) {
       setError('Debes seleccionar ambas fechas.')
-      setTriages([])
+      limpiarResultados()
       setBuscado(true)
-      return
+      return false
     }
 
     if (desde > hasta) {
       setError('La fecha "Desde" no puede ser mayor que la fecha "Hasta".')
-      setTriages([])
+      limpiarResultados()
       setBuscado(true)
-      return
+      return false
     }
+
+    return true
+  }
+
+  const cargarReporte = async (p = 1) => {
+    setError('')
+
+    if (!validarFechas()) return
 
     setLoading(true)
 
     try {
-      const res = await triageApi.getReportePaginado(
-        new Date(`${desde}T00:00:00`).toISOString(),
-        new Date(`${hasta}T23:59:59`).toISOString(),
-        p,
-        PAGE_SIZE
-      )
+      const fechaDesde = buildFechaInicio(desde)
+      const fechaHasta = buildFechaFin(hasta)
 
-      setTriages(res.data)
-      setPage(res.page)
-      setTotalPages(res.totalPages)
-      setTotalItems(res.totalItems)
+      const [res, statsData] = await Promise.all([
+        triageApi.getReportePaginado(fechaDesde, fechaHasta, p, PAGE_SIZE),
+        triageApi.getStatsRango(fechaDesde, fechaHasta),
+      ])
+
+      setTriages(res.data ?? [])
+      setPage(res.page ?? p)
+      setTotalPages(res.totalPages ?? 1)
+      setTotalItems(res.totalItems ?? 0)
+      setStats({
+        total: statsData?.total ?? 0,
+        emergencias: statsData?.emergencias ?? 0,
+        urgentes: statsData?.urgentes ?? 0,
+        semiUrgentes: statsData?.semiUrgentes ?? 0,
+        noUrgentes: statsData?.noUrgentes ?? 0,
+      })
       setBuscado(true)
     } catch (err: any) {
       setError(err?.response?.data?.mensaje ?? 'No se pudo obtener el reporte.')
-      setTriages([])
-      setPage(1)
-      setTotalPages(1)
-      setTotalItems(0)
+      limpiarResultados()
       setBuscado(true)
     } finally {
       setLoading(false)
@@ -84,12 +127,43 @@ export function AdminReportes() {
     await cargarReporte(p)
   }
 
-  const stats = {
-    total: totalItems,
-    emergencias: triages.filter(t => t.nivel === 1).length,
-    urgentes: triages.filter(t => t.nivel === 2).length,
-    semiUrgentes: triages.filter(t => t.nivel === 3).length,
-    noUrgentes: triages.filter(t => t.nivel === 4).length,
+  const handleExportarExcel = async () => {
+    setError('')
+
+    if (!validarFechas()) return
+
+    try {
+      setExportando(true)
+
+      const fechaDesde = buildFechaInicio(desde)
+      const fechaHasta = buildFechaFin(hasta)
+
+      const primeraPagina = await triageApi.getReportePaginado(fechaDesde, fechaHasta, 1, PAGE_SIZE)
+
+      let todosLosTriages: TriageResponse[] = [...(primeraPagina.data ?? [])]
+      const paginasTotales = primeraPagina.totalPages ?? 1
+
+      if (paginasTotales > 1) {
+        const promesas: Promise<any>[] = []
+
+        for (let p = 2; p <= paginasTotales; p++) {
+          promesas.push(triageApi.getReportePaginado(fechaDesde, fechaHasta, p, PAGE_SIZE))
+        }
+
+        const respuestas = await Promise.all(promesas)
+        respuestas.forEach(r => {
+          if (Array.isArray(r.data)) {
+            todosLosTriages = todosLosTriages.concat(r.data)
+          }
+        })
+      }
+
+      exportarReporteExcel(todosLosTriages, desde, hasta)
+    } catch (err: any) {
+      setError(err?.response?.data?.mensaje ?? 'No se pudo exportar el reporte.')
+    } finally {
+      setExportando(false)
+    }
   }
 
   return (
@@ -132,16 +206,17 @@ export function AdminReportes() {
 
           {buscado && triages.length > 0 && (
             <button
-              onClick={() => exportarReporteExcel(triages, desde, hasta)}
+              onClick={handleExportarExcel}
+              disabled={exportando}
               type="button"
-              className="flex items-center gap-2 px-5 py-2 bg-green-700 hover:bg-green-600 text-white text-sm font-medium rounded-lg transition-colors"
+              className="flex items-center gap-2 px-5 py-2 bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
               </svg>
-              Exportar Excel
+              {exportando ? 'Exportando...' : 'Exportar Excel'}
             </button>
           )}
         </div>
@@ -173,6 +248,7 @@ export function AdminReportes() {
           {triages.length > 0 && (
             <div className="flex items-center justify-between mb-4">
               <p className="text-sm text-gray-400">{totalItems} registros encontrados</p>
+
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setVistaTabla(true)}
@@ -183,6 +259,7 @@ export function AdminReportes() {
                 >
                   Tabla
                 </button>
+
                 <button
                   onClick={() => setVistaTabla(false)}
                   type="button"
@@ -215,6 +292,7 @@ export function AdminReportes() {
                       <th className="px-4 py-3"></th>
                     </tr>
                   </thead>
+
                   <tbody>
                     {triages.map(t => {
                       const nivel = NIVEL_CONFIG[t.nivel] ?? {
@@ -245,9 +323,7 @@ export function AdminReportes() {
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1.5">
                               <div className={`w-2 h-2 rounded-full ${nivel.dot}`} />
-                              <span className={`text-xs font-medium ${nivel.color}`}>
-                                {nivel.label}
-                              </span>
+                              <span className={`text-xs font-medium ${nivel.color}`}>{nivel.label}</span>
                             </div>
                             <p className="text-xs text-gray-500 mt-0.5">{t.tiempoAtencion}</p>
                           </td>
@@ -255,9 +331,8 @@ export function AdminReportes() {
                           <td className="px-4 py-3">
                             {t.diagnosticosDiferenciales?.[0] ? (
                               <>
-                                <p className="text-xs text-white">
-                                  {t.diagnosticosDiferenciales[0].nombre}
-                                </p>
+                                <p className="text-xs text-white">{t.diagnosticosDiferenciales[0].nombre}</p>
+
                                 <div className="flex items-center gap-1.5 mt-1">
                                   <div className="w-16 bg-gray-700 rounded-full h-1">
                                     <div
@@ -269,6 +344,7 @@ export function AdminReportes() {
                                     {t.diagnosticosDiferenciales[0].probabilidad}%
                                   </span>
                                 </div>
+
                                 {t.diagnosticosDiferenciales.length > 1 && (
                                   <p className="text-xs text-gray-500 mt-0.5">
                                     +{t.diagnosticosDiferenciales.length - 1} más
@@ -321,9 +397,7 @@ export function AdminReportes() {
                               {t.temperatura == null &&
                                 t.saturacionOxigeno == null &&
                                 t.frecuenciaCardiaca == null &&
-                                !t.presionArterial && (
-                                  <span className="text-xs text-gray-600">—</span>
-                                )}
+                                !t.presionArterial && <span className="text-xs text-gray-600">—</span>}
                             </div>
 
                             {t.alertasVitales?.length > 0 && (
@@ -336,17 +410,23 @@ export function AdminReportes() {
                           <td className="px-4 py-3 text-xs text-gray-400">{t.usuarioRegistra}</td>
 
                           <td className="px-4 py-3">
-                            <button
-                              onClick={() => exportarTriagePDF(t)}
-                              type="button"
-                              className="px-2.5 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs rounded-lg transition-colors"
-                            >
-                              PDF
-                            </button>
-                            <button onClick={() => setTriageSeguimiento(t)} type="button"
-                            className="px-2.5 py-1.5 bg-green-500/10 hover:bg-green-500/20 text-green-400 text-xs rounded-lg transition-colors">
-                            Seguimiento
-                          </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => exportarTriagePDF(t)}
+                                type="button"
+                                className="px-2.5 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs rounded-lg transition-colors"
+                              >
+                                PDF
+                              </button>
+
+                              <button
+                                onClick={() => setTriageSeguimiento(t)}
+                                type="button"
+                                className="px-2.5 py-1.5 bg-green-500/10 hover:bg-green-500/20 text-green-400 text-xs rounded-lg transition-colors"
+                              >
+                                Seguimiento
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       )
@@ -408,13 +488,23 @@ export function AdminReportes() {
                             </p>
                           </div>
 
-                          <button
-                            onClick={() => exportarTriagePDF(t)}
-                            type="button"
-                            className="px-2.5 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs rounded-lg transition-colors"
-                          >
-                            PDF
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => exportarTriagePDF(t)}
+                              type="button"
+                              className="px-2.5 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs rounded-lg transition-colors"
+                            >
+                              PDF
+                            </button>
+
+                            <button
+                              onClick={() => setTriageSeguimiento(t)}
+                              type="button"
+                              className="px-2.5 py-1.5 bg-green-500/10 hover:bg-green-500/20 text-green-400 text-xs rounded-lg transition-colors"
+                            >
+                              Seguimiento
+                            </button>
+                          </div>
                         </div>
                       </div>
 
@@ -434,32 +524,38 @@ export function AdminReportes() {
                         t.glucosa != null) && (
                         <div className="px-5 py-3 border-b border-gray-800/50">
                           <p className="text-xs text-gray-400 mb-2">Signos vitales</p>
+
                           <div className="flex flex-wrap gap-2">
                             {t.temperatura != null && (
                               <span className="px-2 py-1 bg-gray-800 text-gray-300 text-xs rounded-lg">
                                 🌡 {t.temperatura}°C
                               </span>
                             )}
+
                             {t.frecuenciaCardiaca != null && (
                               <span className="px-2 py-1 bg-gray-800 text-gray-300 text-xs rounded-lg">
                                 ❤ {t.frecuenciaCardiaca} lpm
                               </span>
                             )}
+
                             {t.saturacionOxigeno != null && (
                               <span className="px-2 py-1 bg-gray-800 text-gray-300 text-xs rounded-lg">
                                 O₂ {t.saturacionOxigeno}%
                               </span>
                             )}
+
                             {t.presionArterial && (
                               <span className="px-2 py-1 bg-gray-800 text-gray-300 text-xs rounded-lg">
                                 PA {t.presionArterial}
                               </span>
                             )}
+
                             {t.frecuenciaRespiratoria != null && (
                               <span className="px-2 py-1 bg-gray-800 text-gray-300 text-xs rounded-lg">
                                 FR {t.frecuenciaRespiratoria} rpm
                               </span>
                             )}
+
                             {t.glucosa != null && (
                               <span className="px-2 py-1 bg-gray-800 text-gray-300 text-xs rounded-lg">
                                 Glucosa {t.glucosa} mg/dL
@@ -485,10 +581,12 @@ export function AdminReportes() {
                       {t.diagnosticosDiferenciales?.length > 0 && (
                         <div className="px-5 py-3">
                           <p className="text-xs text-gray-400 mb-2">Diagnósticos diferenciales</p>
+
                           <div className="space-y-2">
                             {t.diagnosticosDiferenciales.map((d, i) => (
                               <div key={`${d.codigo}-${i}`} className="flex items-center gap-3">
                                 <span className="text-xs text-gray-600 w-4">{i + 1}</span>
+
                                 <div className="flex-1">
                                   <div className="flex items-center justify-between mb-0.5">
                                     <p className="text-sm text-white">{d.nombre}</p>
@@ -496,12 +594,14 @@ export function AdminReportes() {
                                       {d.probabilidad}%
                                     </span>
                                   </div>
+
                                   <div className="w-full bg-gray-800 rounded-full h-1">
                                     <div
                                       className="bg-blue-500 h-1 rounded-full"
                                       style={{ width: `${d.probabilidad}%` }}
                                     />
                                   </div>
+
                                   <p className="text-xs text-gray-500 mt-0.5">
                                     {d.grupo} · {d.recomendacion}
                                   </p>
@@ -517,6 +617,7 @@ export function AdminReportes() {
                           {t.todosSintomas?.length > 0 && (
                             <div className="mb-2">
                               <p className="text-xs text-gray-400 mb-1.5">Síntomas</p>
+
                               <div className="flex flex-wrap gap-1.5">
                                 {t.signosAlarma?.map(s => (
                                   <span
@@ -526,6 +627,7 @@ export function AdminReportes() {
                                     {s}
                                   </span>
                                 ))}
+
                                 {sintomasNormales.map(s => (
                                   <span
                                     key={s}
@@ -537,14 +639,6 @@ export function AdminReportes() {
                               </div>
                             </div>
                           )}
-                          
-                              {triageSeguimiento && (
-                  <ModalSeguimiento
-                    triage={triageSeguimiento}
-                    onClose={() => setTriageSeguimiento(null)}
-                    onRegistrado={() => setTriageSeguimiento(null)}
-                                />
-                        )}
 
                           {t.observaciones && (
                             <div>
@@ -575,6 +669,14 @@ export function AdminReportes() {
             </>
           )}
         </>
+      )}
+
+      {triageSeguimiento && (
+        <ModalSeguimiento
+          triage={triageSeguimiento}
+          onClose={() => setTriageSeguimiento(null)}
+          onRegistrado={() => setTriageSeguimiento(null)}
+        />
       )}
     </div>
   )

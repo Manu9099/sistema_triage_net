@@ -1,28 +1,33 @@
+using System.Security.Claims;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using sistema_triage.Application.DTOs.Paciente;
 using sistema_triage.Application.Services.Interfaces;
+using sistema_triage.Domain.Interfaces;
 
 namespace sistema_triage.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
+[Authorize(Roles = "Admin,Staff")]
 public class PacientesController : ControllerBase
 {
     private readonly IPacienteService _pacienteService;
     private readonly IValidator<CrearPacienteDto> _crearValidator;
+    private readonly IPacienteRepository _pacienteRepo;
 
-    public PacientesController(IPacienteService pacienteService, IValidator<CrearPacienteDto> crearValidator)
+    public PacientesController(IPacienteService pacienteService, IValidator<CrearPacienteDto> crearValidator, IPacienteRepository pacienteRepo)
     {
         _pacienteService = pacienteService;
         _crearValidator = crearValidator;
+        _pacienteRepo = pacienteRepo;
     }
 
 
 
     [HttpGet("{id:guid}")]
+    [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> GetById(Guid id)
     {
         var paciente = await _pacienteService.ObtenerPorIdAsync(id);
@@ -66,6 +71,7 @@ public class PacientesController : ControllerBase
     }
 
     [HttpPost("{id:guid}/foto")]
+    [Authorize]
     public async Task<IActionResult> SubirFoto(Guid id, IFormFile foto)
     {
         if (foto == null || foto.Length == 0)
@@ -112,6 +118,18 @@ public async Task<IActionResult> GetAll(
 {
     var result = await _pacienteService.ObtenerPaginadoAsync(busqueda, page, pageSize);
     return Ok(new { exitoso = true, data = result });
+}
+
+[HttpPut("mi-perfil")]
+[Authorize(Roles = "Paciente")]
+public async Task<IActionResult> ActualizarMiPerfil([FromBody] ActualizarPacienteDto dto)
+{
+    var email = User.FindFirst(ClaimTypes.Email)?.Value!;
+    var pacientes = await _pacienteRepo.FindAsync(p => p.Email == email && p.Activo);
+    var paciente = pacientes.FirstOrDefault()
+        ?? throw new KeyNotFoundException("Perfil no encontrado");
+    var actualizado = await _pacienteService.ActualizarAsync(paciente.Id, dto);
+    return Ok(new { exitoso = true, data = actualizado });
 }
 
 }

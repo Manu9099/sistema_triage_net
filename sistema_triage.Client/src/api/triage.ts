@@ -31,5 +31,9 @@ getByPacientePaginado: async (pacienteId: string, page = 1, pageSize = 10): Prom
   )
   return res.data.data
 },
+getStatsRango: async (desde: string, hasta: string) => {
+  const res = await api.get(`/triage/stats-rango?desde=${desde}&hasta=${hasta}`)
+  return res.data.data
+},
 
 }

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { ClipboardList, Clock, User } from 'lucide-react'
 import { triageApi } from '../../api/triage'
 import type { TriageResponse } from '../../types'
+import { usePacientePerfil } from '../../hooks/usePacientePerfil'
 
 const NIVEL_CONFIG: Record<number, { label: string; color: string; bg: string; border: string; indicador: string; accion: string }> = {
   1: {
@@ -46,15 +47,15 @@ export function PacienteDashboard() {
   
   const [ultimoTriage, setTriages] = useState<TriageResponse | null>(null)
   const [loading, setLoading] = useState(true)
-
+ const { paciente } = usePacientePerfil()
 
   useEffect(() => {
-    if (!user?.userId) { setLoading(false); return }
-triageApi.getByPacientePaginado(user.userId, 1, 1)
-  .then(res => setTriages(res.data[0] ?? null))
-  .catch(() => {})
-  .finally(() => setLoading(false))
-  }, [user])
+  if (!paciente?.id) { setLoading(false); return }
+  triageApi.getByPacientePaginado(paciente.id, 1, 1)
+    .then(res => setTriages(res.data[0] ?? null))
+    .catch(() => {})
+    .finally(() => setLoading(false))
+}, [paciente?.id])
 
   const cfg = ultimoTriage ? NIVEL_CONFIG[ultimoTriage.nivel] : null
   const horasTriage = ultimoTriage

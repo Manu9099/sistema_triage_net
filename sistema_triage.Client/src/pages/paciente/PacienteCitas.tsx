@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { Calendar, Clock, X } from 'lucide-react'
 import { citasApi } from '../../api/citas'
 import type { Cita, SlotDisponibilidad, SolicitarCitaDto } from '../../types'
+import { toLocalISOString, hoyLocal } from '../../utils/fechas'
+// Necesita importar Plus
+import { Plus } from 'lucide-react'
 
 const ESTADO_CONFIG: Record<number, { label: string; color: string; bg: string; border: string }> = {
   0: { label: 'Pendiente',    color: 'text-yellow-700', bg: 'bg-yellow-50', border: 'border-yellow-200' },
@@ -15,7 +18,7 @@ function ModalSolicitarCita({ onClose, onSolicitada }: {
   onClose: () => void
   onSolicitada: (c: Cita) => void
 }) {
-  const hoy = new Date().toISOString().slice(0, 10)
+  const hoy = hoyLocal()
   const enUnMes = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
   const [slots, setSlots] = useState<SlotDisponibilidad[]>([])
   const [slotSeleccionado, setSlotSeleccionado] = useState<string>('')
@@ -150,8 +153,8 @@ const cancelarCita = async (citaId: string) => {
 
   const onSolicitada = (c: Cita) => setCitas(prev => [c, ...prev])
 
-  const proximas = citas.filter(c => c.estado === 0 || c.estado === 1)
-  const anteriores = citas.filter(c => c.estado === 2 || c.estado === 4)
+const proximas = citas.filter(c => c.estado === 0 || c.estado === 1 || c.estado === 3)
+const anteriores = citas.filter(c => c.estado === 2 || c.estado === 4)
 
   return (
     <div className="max-w-2xl">
@@ -274,5 +277,3 @@ const cancelarCita = async (citaId: string) => {
   )
 }
 
-// Necesita importar Plus
-import { Plus } from 'lucide-react'
